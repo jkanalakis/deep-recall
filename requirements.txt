@@ -17,6 +17,11 @@ starlette>=0.20.0
 python-multipart>=0.0.5  # For form data parsing
 python-jose[cryptography]>=3.3.0  # For JWT handling
 passlib[bcrypt]>=1.7.4  # For password hashing
+email-validator>=1.3.0  # For email validation
+
+# Security
+cryptography>=37.0.0
+bcrypt>=4.0.0
 
 # Monitoring and logging
 prometheus-client>=0.14.0

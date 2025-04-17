@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 
 # Import custom modules
 from api.endpoints import memory, inference
+from api.auth.routes import router as auth_router
 from api.middleware.auth import authenticate_request
 from api.middleware.logging import LoggingMiddleware
 from api.middleware.prometheus import PrometheusMiddleware
@@ -55,6 +56,13 @@ app.include_router(
     prefix="/api/inference",
     tags=["inference"],
     dependencies=[Security(security)]
+)
+
+# Include authentication router
+app.include_router(
+    auth_router,
+    prefix="/api/auth",
+    tags=["auth"]
 )
 
 # Health check endpoint
