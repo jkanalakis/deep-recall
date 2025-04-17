@@ -1,0 +1,28 @@
+# Core dependencies
+numpy>=1.20.0
+torch>=1.10.0
+transformers>=4.15.0
+faiss-cpu>=1.7.2,<1.8.0  # Use faiss-gpu for GPU support
+sentence-transformers>=2.2.0
+
+# Database dependencies
+psycopg2-binary>=2.9.3  # PostgreSQL integration
+sqlalchemy>=1.4.0  # ORM for relational database
+
+# API and infrastructure
+fastapi>=0.85.0
+uvicorn>=0.17.0
+pydantic>=1.9.0
+starlette>=0.20.0
+python-multipart>=0.0.5  # For form data parsing
+python-jose[cryptography]>=3.3.0  # For JWT handling
+passlib[bcrypt]>=1.7.4  # For password hashing
+
+# Monitoring and logging
+prometheus-client>=0.14.0
+loguru>=0.6.0
+
+# Testing
+pytest>=7.0.0
+pytest-cov>=3.0.0
+pytest-asyncio>=0.18.0
