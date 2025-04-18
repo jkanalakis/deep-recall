@@ -262,6 +262,42 @@ pip install -r requirements-dev.txt
 pre-commit install
 ```
 
+## 📌 Roadmap
+
+1. Backup & Disaster Recovery:
+
+* Implement automated backup schedules.
+
+* Clearly document restoration procedures and test regularly.
+
+2. Security Automation:
+
+* Integrate regular automated security scans (tools like OWASP ZAP, Dependabot, or GitHub Advanced Security).
+
+* Document vulnerability management and patching procedures.
+
+3. Rollback and Versioning:
+
+* Add clear version control of model artifacts and database schemas.
+
+* Implement rollback scripts for deployments.
+
+4. Robustness & Edge Case Tests:
+
+* Develop more comprehensive stress-tests and edge case scenarios.
+
+* Add explicit error handling and recovery strategies.
+
+5. Data Migration:
+
+* Clearly define data migration pathways for evolving schemas or new embeddings.
+
+6. Front-End Integration:
+
+* Provide API client examples or SDKs (JavaScript, Python client libraries).
+
+* Simple front-end example (e.g., React, Vue) that demonstrates API integration.
+
 ## 📄 License
 
 Distributed under the [Apache 2.0 License](LICENSE). Make it yours, and help build the future of AI-driven personalized experiences!
