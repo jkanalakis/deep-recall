@@ -1,0 +1,49 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 1024
+    spike_limit_mib: 256
+  resourcedetection:
+    detectors: [env, system]
+    timeout: 5s
+
+exporters:
+  logging:
+    loglevel: debug
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    namespace: otel
+    send_timestamps: true
+    metric_expiration: 180m
+  jaeger:
+    endpoint: jaeger:14250
+    tls:
+      insecure: true
+  zipkin:
+    endpoint: http://zipkin:9411/api/v2/spans
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch, memory_limiter, resourcedetection]
+      exporters: [jaeger, zipkin, logging]
+    metrics:
+      receivers: [otlp]
+      processors: [batch, memory_limiter, resourcedetection]
+      exporters: [prometheus, logging]
+    logs:
+      receivers: [otlp]
+      processors: [batch, memory_limiter, resourcedetection]
+      exporters: [logging] 

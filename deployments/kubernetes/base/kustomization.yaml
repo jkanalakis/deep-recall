@@ -11,6 +11,7 @@ resources:
 - configmap.yaml
 - prometheus.yaml
 - grafana.yaml
+- otel-collector.yaml
 
 commonLabels:
   app: deep-recall

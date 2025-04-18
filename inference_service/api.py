@@ -7,22 +7,55 @@ import time
 import torch
 import yaml
 import json
-from loguru import logger
-import importlib
 import sys
-from typing import Dict, Any, Optional, List, Union, AsyncIterator
+import importlib
 import asyncio
+from typing import Dict, Any, Optional, List, Union, AsyncIterator
 from uuid import uuid4
+
+# Import internal modules
 from inference_service.memory_integration import get_context_for_prompt, get_mock_context
 from models.gpu_optimizations import QuantizationMode, ParallelMode, optimize_cuda_memory, clear_gpu_memory
 from inference_service.metrics import setup_metrics, get_metrics_exporter
 
-# Configure logger
-logger.remove()
-logger.add(sys.stderr, level=os.environ.get("LOG_LEVEL", "INFO"))
+# Import common logging
+from common.logging import setup_logger, setup_tracing, get_tracer
+from common.logging.middleware import RequestLoggingMiddleware
+from common.logging.context import RequestContextMiddleware
 
+# Import OpenTelemetry instrumentation
+from common.logging.tracing import instrument_fastapi, instrument_httpx_client
+
+# Initialize service name
+SERVICE_NAME = "inference-service"
+
+# Setup logging and tracing
+logger = setup_logger(
+    service_name=SERVICE_NAME,
+    log_level=os.environ.get("LOG_LEVEL", "INFO"),
+    log_file=os.environ.get("LOG_FILE"),
+    json_logs=os.environ.get("JSON_LOGS", "").lower() == "true",
+)
+
+# Setup tracing
+tracer_provider = setup_tracing(
+    service_name=SERVICE_NAME,
+    otlp_endpoint=os.environ.get("OTLP_ENDPOINT"),
+    debug=os.environ.get("DEBUG_TRACING", "").lower() == "true",
+)
+
+# Get module tracer
+tracer = get_tracer(__name__)
+
+# Initialize FastAPI app
 app = FastAPI(title="Deep Recall Inference Service", 
               description="API for LLM inference with DeepSeek R1 and other models")
+
+# Add request context middleware
+app.add_middleware(RequestContextMiddleware)
+
+# Add request logging middleware
+app.add_middleware(RequestLoggingMiddleware, service_name=SERVICE_NAME)
 
 # Add CORS middleware
 app.add_middleware(
@@ -236,8 +269,22 @@ async def load_model(model_name: str,
 @app.on_event("startup")
 async def startup_event():
     """
-    Initialize models on startup
+    Initialize models and instrumentation on startup
     """
+    # Import OpenTelemetry instrumentation
+    from common.logging.tracing import instrument_fastapi, instrument_httpx_client
+    
+    # Instrument FastAPI application
+    instrument_fastapi(app)
+    
+    # Create and instrument HTTPX client if needed
+    import httpx
+    client = httpx.AsyncClient()
+    instrument_httpx_client(client)
+    
+    # Log startup information
+    logger.info(f"Starting {SERVICE_NAME} with OpenTelemetry tracing")
+    
     global CONFIG, DEFAULT_MODEL
     
     if not CONFIG or "models" not in CONFIG:
@@ -265,6 +312,8 @@ async def startup_event():
             DEFAULT_MODEL = first_model
         except Exception as e:
             logger.error(f"Failed to load first model {first_model}: {str(e)}")
+    
+    logger.info(f"Startup completed. Default model: {DEFAULT_MODEL or 'None'}")
 
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
@@ -600,71 +649,115 @@ async def generate_completion(request: InferenceRequest):
     """
     Generate a completion for the given prompt
     """
-    global LOADED_MODELS, DEFAULT_MODEL
-    
-    if not LOADED_MODELS:
-        raise HTTPException(status_code=503, detail="No models loaded")
-    
-    # Get the appropriate model
-    model_name = request.model or DEFAULT_MODEL
-    model = get_model_by_name(model_name)
-    
-    if not model:
-        raise HTTPException(status_code=404, detail=f"Model not found: {model_name}")
-    
-    start_time = time.time()
-    
-    try:
-        # Track request in metrics
-        metrics_exporter.track_request_start(model.model_id, "/v1/completions")
-        metrics_exporter.track_request_processing()
+    # Start a span for this endpoint
+    with tracer.start_as_current_span("generate_completion") as span:
+        # Add attributes to the span
+        span.set_attribute("model", request.model)
+        span.set_attribute("max_tokens", request.max_tokens)
+        span.set_attribute("temperature", request.temperature)
+        span.set_attribute("prompt_length", len(request.prompt))
         
-        # Format the context if provided
-        context = []
-        if request.context:
-            context = request.context
+        global LOADED_MODELS, DEFAULT_MODEL
         
-        # Generate the completion
-        result = await model.generate(
-            prompt=request.prompt,
-            max_tokens=request.max_tokens,
-            temperature=request.temperature,
-            top_p=request.top_p,
-            frequency_penalty=request.frequency_penalty,
-            presence_penalty=request.presence_penalty,
-            stop_sequences=request.stop_sequences,
-            context=context
-        )
+        if not LOADED_MODELS:
+            logger.error("No models loaded")
+            span.set_attribute("error", "no_models_loaded")
+            span.record_exception(HTTPException(status_code=503, detail="No models loaded"))
+            raise HTTPException(status_code=503, detail="No models loaded")
         
-        # Calculate latency
-        latency_ms = (time.time() - start_time) * 1000
+        # Get the appropriate model
+        model_name = request.model or DEFAULT_MODEL
+        span.set_attribute("model_name", model_name)
         
-        # Track metrics for the completed request
-        metrics_exporter.track_request_complete(
-            latency_ms=latency_ms,
-            prompt_tokens=result["usage"]["prompt_tokens"],
-            completion_tokens=result["usage"]["completion_tokens"]
-        )
+        model = get_model_by_name(model_name)
         
-        # Calculate memory usage for metrics
-        if torch.cuda.is_available():
-            gpu_memory_bytes = torch.cuda.memory_allocated()
-            per_request_mb = gpu_memory_bytes / (1024 * 1024) / max(1, metrics_exporter.active_requests)
-            metrics_exporter.update_memory_usage(gpu_memory_bytes, per_request_mb)
+        if not model:
+            logger.error(f"Model not found: {model_name}")
+            span.set_attribute("error", "model_not_found")
+            span.record_exception(HTTPException(status_code=404, detail=f"Model not found: {model_name}"))
+            raise HTTPException(status_code=404, detail=f"Model not found: {model_name}")
         
-        return {
-            "text": result["text"],
-            "usage": result["usage"],
-            "model": model.model_id,
-            "inference_time": latency_ms / 1000,  # Convert to seconds
-            "request_id": str(uuid4())
-        }
+        start_time = time.time()
         
-    except Exception as e:
-        # Track error in metrics
-        metrics_exporter.track_error(error_type=type(e).__name__)
-        logger.exception(f"Error generating completion: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        try:
+            # Track request in metrics
+            metrics_exporter.track_request_start(model.model_id, "/v1/completions")
+            metrics_exporter.track_request_processing()
+            
+            # Format the context if provided
+            context = []
+            if request.context:
+                context = request.context
+                span.set_attribute("context_length", len(context))
+            
+            # Create a child span for model inference
+            with tracer.start_as_current_span("model_inference") as inference_span:
+                # Generate the completion
+                result = await model.generate(
+                    prompt=request.prompt,
+                    max_tokens=request.max_tokens,
+                    temperature=request.temperature,
+                    top_p=request.top_p,
+                    frequency_penalty=request.frequency_penalty,
+                    presence_penalty=request.presence_penalty,
+                    stop_sequences=request.stop_sequences,
+                    context=context
+                )
+                
+                # Record token usage in span
+                inference_span.set_attribute("prompt_tokens", result["usage"]["prompt_tokens"])
+                inference_span.set_attribute("completion_tokens", result["usage"]["completion_tokens"])
+                inference_span.set_attribute("total_tokens", result["usage"]["prompt_tokens"] + result["usage"]["completion_tokens"])
+            
+            # Calculate latency
+            latency_ms = (time.time() - start_time) * 1000
+            span.set_attribute("latency_ms", latency_ms)
+            
+            # Track metrics for the completed request
+            metrics_exporter.track_request_complete(
+                latency_ms=latency_ms,
+                prompt_tokens=result["usage"]["prompt_tokens"],
+                completion_tokens=result["usage"]["completion_tokens"]
+            )
+            
+            # Calculate memory usage for metrics
+            if torch.cuda.is_available():
+                gpu_memory_bytes = torch.cuda.memory_allocated()
+                per_request_mb = gpu_memory_bytes / (1024 * 1024) / max(1, metrics_exporter.active_requests)
+                metrics_exporter.update_memory_usage(gpu_memory_bytes, per_request_mb)
+                
+                # Add GPU metrics to span
+                span.set_attribute("gpu_memory_bytes", gpu_memory_bytes)
+                span.set_attribute("gpu_memory_mb_per_request", per_request_mb)
+            
+            # Generate response
+            response_data = {
+                "text": result["text"],
+                "usage": result["usage"],
+                "model": model.model_id,
+                "inference_time": latency_ms / 1000,  # Convert to seconds
+                "request_id": str(uuid4())
+            }
+            
+            # Add result length to span
+            span.set_attribute("result_length", len(result["text"]))
+            
+            logger.info(f"Generated completion successfully: {latency_ms:.2f}ms, "
+                       f"{result['usage']['prompt_tokens']} prompt tokens, "
+                       f"{result['usage']['completion_tokens']} completion tokens")
+            
+            return response_data
+            
+        except Exception as e:
+            # Record exception in span
+            span.record_exception(e)
+            span.set_attribute("error", True)
+            span.set_attribute("error_type", type(e).__name__)
+            
+            # Track error in metrics
+            metrics_exporter.track_error(error_type=type(e).__name__)
+            logger.exception(f"Error generating completion: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/v1/batch_completions", response_model=BatchInferenceResponse)
 async def batch_generate_completions(request: BatchInferenceRequest):

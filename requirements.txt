@@ -42,6 +42,15 @@ prometheus-client>=0.14.0
 loguru>=0.6.0
 pyyaml>=6.0           # For configuration files
 
+# OpenTelemetry
+opentelemetry-api>=1.19.0
+opentelemetry-sdk>=1.19.0
+opentelemetry-exporter-otlp>=1.19.0
+opentelemetry-instrumentation-fastapi>=0.40b0
+opentelemetry-instrumentation-httpx>=0.40b0
+opentelemetry-instrumentation-sqlalchemy>=0.40b0
+opentelemetry-instrumentation-redis>=0.40b0
+
 # Model parallelism
 deepspeed>=0.9.5      # For advanced model parallelism (optional)
 torch-xla>=2.0        # For TPU support (optional)

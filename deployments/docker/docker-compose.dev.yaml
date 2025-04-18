@@ -53,6 +53,7 @@ services:
       VECTOR_DB_URL: http://qdrant:6333
       PYTHONPATH: /app
       LOG_LEVEL: DEBUG
+      OTLP_ENDPOINT: http://otel-collector:4317
     restart: on-failure
 
   # Inference Service (GPU version)
@@ -73,6 +74,7 @@ services:
       MODEL_TYPE: deepseek_r1
       MODEL_CONFIG_PATH: /app/config/model_config.yaml
       LOG_LEVEL: DEBUG
+      OTLP_ENDPOINT: http://otel-collector:4317
     deploy:
       resources:
         reservations:
@@ -101,6 +103,7 @@ services:
       MODEL_CONFIG_PATH: /app/config/model_config.yaml
       LOG_LEVEL: DEBUG
       USE_QUANTIZATION: "true"  # Enable quantization for CPU mode
+      OTLP_ENDPOINT: http://otel-collector:4317
     restart: on-failure
 
   # Orchestrator Service
@@ -119,6 +122,7 @@ services:
       MEMORY_SERVICE_URL: http://memory-service:8000
       INFERENCE_SERVICE_URL: http://inference-service:8000
       LOG_LEVEL: DEBUG
+      OTLP_ENDPOINT: http://otel-collector:4317
     restart: on-failure
 
   # Prometheus for metrics collection
@@ -185,6 +189,40 @@ services:
       - /dev/disk/:/dev/disk:ro
     devices:
       - /dev/kmsg
+    restart: on-failure
+
+  # OpenTelemetry Collector
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: deep-recall-otel-collector
+    ports:
+      - "4317:4317"  # OTLP gRPC
+      - "4318:4318"  # OTLP HTTP
+      - "8889:8889"  # Prometheus exporter
+    volumes:
+      - ./../monitoring/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    command:
+      - --config=/etc/otel-collector-config.yaml
+    restart: on-failure
+
+  # Jaeger for distributed tracing visualization
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: deep-recall-jaeger
+    ports:
+      - "16686:16686"  # UI
+      - "14250:14250"  # Model
+      - "4318:4318"    # OTLP HTTP
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    restart: on-failure
+
+  # Zipkin for alternative tracing visualization
+  zipkin:
+    image: openzipkin/zipkin:latest
+    container_name: deep-recall-zipkin
+    ports:
+      - "9411:9411"  # UI and API
     restart: on-failure
 
 volumes:
