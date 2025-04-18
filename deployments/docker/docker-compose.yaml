@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  inference-service:
+    build:
+      context: ../..
+      dockerfile: deployments/docker/Dockerfile.inference
+    image: deep-recall/inference-service:latest
+    container_name: deep-recall-inference
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - model_cache:/app/model_cache
+    environment:
+      - MODEL_TYPE=deepseek_r1
+      - LOG_LEVEL=INFO
+      - CUDA_VISIBLE_DEVICES=0
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+volumes:
+  model_cache:
+    driver: local 

@@ -1,0 +1,50 @@
+# Exclude Git files
+.git
+.gitignore
+
+# Exclude development environments
+.venv
+venv
+env
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+.pytest_cache
+.coverage
+htmlcov
+
+# Exclude logs
+logs
+*.log
+
+# Exclude documentation
+docs
+*.md
+!README.md
+
+# Exclude unnecessary directories
+.github
+tests
+
+# Exclude large model files and temporary data
+model_cache
+*.bin
+*.pt
+*.pth
+*.onnx
+
+# Exclude development and IDE files
+.vscode
+.idea
+*.swp
+*.swo
+
+# Exclude Docker files (to avoid recursion)
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Exclude deployment files
+deployments/kubernetes 

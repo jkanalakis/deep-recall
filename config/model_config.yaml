@@ -1,0 +1,38 @@
+# Model Configuration for Deep Recall
+
+models:
+  deepseek_r1:
+    model_id: "deepseek-ai/deepseek-coder-7b-instruct"
+    revision: "main"
+    trust_remote_code: true
+    use_gpu: true
+    quantization: null  # Options: null, "8bit", "4bit"
+    max_sequence_length: 8192
+    generation:
+      max_new_tokens: 1024
+      temperature: 0.7
+      top_p: 0.9
+      do_sample: true
+  
+  # Configuration for other models can be added here
+  # llama3:
+  #   model_id: "meta-llama/Meta-Llama-3-8B"
+  #   ...
+
+# Inference API configuration
+api:
+  port: 8000
+  host: "0.0.0.0"
+  log_level: "INFO"
+  cors_origins: ["*"]
+
+# Scaling configuration
+scaling:
+  max_batch_size: 8
+  max_waiting_tokens: 20
+  max_active_requests: 32
+  
+# Monitoring configuration
+monitoring:
+  prometheus_metrics: true
+  health_check_interval: 30 
