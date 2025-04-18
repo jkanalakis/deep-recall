@@ -1,41 +1,152 @@
 # deep-recall
+
 A hyper-personalized agent memory framework for open-source LLMs to store, retrieve, and seamlessly integrate past user interactions. This enables LLMs to tailor responses with relevant personal context. It's lightweight, extensible, and easy to deploy on any cloud or local environment.
 
-A **hyper-personalized agent memory framework** for open-source Large Language Models (LLMs). RecallChain stores, retrieves, and seamlessly integrates past user interactions—allowing LLMs to tailor responses with relevant personal context. It's lightweight, extensible, and easy to deploy on any cloud or local environment.
+## 🔍 Overview
 
-## Key Features
+Deep Recall is a sophisticated memory framework designed to enhance the capabilities of open-source Large Language Models (LLMs) by providing:
 
-- **Vector Memory**: Semantic embeddings for quick, accurate retrieval of user history.  
-- **Modular Design**: Swap out storage backends (FAISS, Milvus, Qdrant, etc.) or LLMs with minimal changes.  
-- **Privacy & Control**: Provide APIs to view, update, or delete stored user data.  
-- **Scalable & Cloud-Native**: Containerized microservices for long-running deployments on any platform.
+- **Contextual Awareness**: Enables LLMs to remember and reference past conversations with specific users
+- **Personalized Responses**: Tailors responses based on user history, preferences, and past interactions
+- **Scalable Architecture**: Designed for high-performance in both cloud and local deployments
 
-## Quick Start
+## 🚀 Key Features
 
-1. **Clone the repo**  
-   ```bash
-   git clone https://github.com/jkanalakis/deep-recall.git
-   cd deep-recall
-   ```
+- **Vector Memory**: Semantic embeddings for quick, accurate retrieval of user history  
+- **Modular Design**: Swap out storage backends (FAISS, Milvus, Qdrant, Chroma) or LLMs with minimal changes
+- **Privacy & Control**: APIs to view, update, or delete stored user data
+- **Scalable & Cloud-Native**: Containerized microservices for long-running deployments on any platform
+- **Multi-modal Support**: Store and retrieve text, structured data, and metadata
+- **GPU Acceleration**: Optimized for GPU inference with support for quantization
+- **Comprehensive Monitoring**: Built-in metrics and logging for performance tracking
 
-2. **Install dependencies**  
-   ```bash
-   pip install -r requirements.txt
-   ```
+## 🏗️ System Architecture
 
-3. **Run the example**  
-   ```bash
-   python examples/user_history_example.py
-   ```
-   This adds sample user messages, retrieves relevant memory, and demonstrates how to integrate an open-source LLM.
+Deep Recall consists of three primary components:
 
-## Testing
+### 1. Memory Service
+- **Storage**: PostgreSQL for structured data storage with pgvector extension
+- **Vector Embeddings**: Generates embeddings using SentenceTransformers or Hugging Face models
+- **Vector Databases**: Supports FAISS, Qdrant, Milvus, and Chroma for efficient similarity search
+- **Semantic Search**: Fast top-k retrieval with configurable similarity thresholds
+
+### 2. Inference Service
+- **Model Hosting**: Support for open-source LLMs including DeepSeek R1 and LLaMA variants
+- **GPU Optimization**: CUDA-enabled inference with mixed precision (FP16)
+- **Model Deployment**: Containerized deployment optimized for Kubernetes
+
+### 3. Orchestrator/API Gateway
+- **Request Routing**: Efficient management of requests between services
+- **Context Aggregation**: Combines retrieved memories with current context
+- **API Management**: RESTful and gRPC interfaces for external integration
+
+## 🛠️ Quick Start
+
+### Prerequisites
+- Python 3.8+
+- PostgreSQL 13+ with pgvector extension
+- CUDA-compatible GPU (optional but recommended)
+
+### 1. Clone the repo  
+```bash
+git clone https://github.com/jkanalakis/deep-recall.git
+cd deep-recall
+```
+
+### 2. Install dependencies  
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Set up the database
+```bash
+# Install PostgreSQL and pgvector (see database_setup.md for details)
+# Initialize the database
+psql -U postgres -f init_db.sql
+```
+
+### 4. Run the example  
+```bash
+python examples/user_history_example.py
+```
+
+This adds sample user messages, retrieves relevant memory, and demonstrates how to integrate with an open-source LLM.
+
+## 📊 Advanced Examples
+
+### Semantic Search
+
+```python
+from memory.semantic_search import SemanticSearch
+from memory.vector_db.faiss_store import FAISSVectorStore
+
+# Initialize vector store and semantic search
+vector_store = FAISSVectorStore(dimension=384)
+semantic_search = SemanticSearch(vector_store=vector_store)
+
+# Search for similar memories
+query = "What was our discussion about machine learning?"
+results = semantic_search.search(
+    query=query,
+    user_id="user123",
+    limit=5,
+    threshold=0.75
+)
+
+for result in results:
+    print(f"Similarity: {result.similarity}, Memory: {result.text}")
+```
+
+### Personalized Response Generation
+
+```python
+from memory.memory_retriever import MemoryRetriever
+from inference_service.models.llm import LLM
+
+# Initialize components
+memory_retriever = MemoryRetriever()
+llm = LLM(model_name="deepseek-r1")
+
+# Retrieve relevant memories
+memories = memory_retriever.get_relevant_memories(
+    user_id="user123",
+    query="What did we discuss about my project last time?",
+    limit=3
+)
+
+# Format context with memories
+context = "Previous relevant conversations:\n"
+for memory in memories:
+    context += f"- {memory.text}\n"
+
+# Generate personalized response
+response = llm.generate(
+    prompt=f"{context}\nUser: What did we discuss about my project last time?",
+    max_tokens=150
+)
+
+print(response)
+```
+
+## 🗄️ Database Configuration
+
+Deep Recall uses PostgreSQL with the pgvector extension for efficient vector storage and retrieval.
+
+### Core Tables
+
+- **users**: User information and preferences
+- **memories**: Memory content and vector embeddings
+- **sessions**: Conversation sessions
+- **interactions**: Conversation turns between users and the system
+- **feedback**: User feedback on interactions
+
+See [database_setup.md](database_setup.md) for detailed setup instructions.
+
+## 🧪 Testing
 
 The project includes comprehensive unit tests, integration tests, and API tests.
 
 ### Running Tests Locally
-
-We provide a convenient script to run tests:
 
 ```bash
 # Run all tests
@@ -69,7 +180,7 @@ All tests run automatically on GitHub Actions for every pull request and push to
 
 For more details on CI, see the [CI/CD workflow documentation](./.github/workflows/README.md).
 
-## Docker & Kubernetes Deployment
+## 🐳 Docker & Kubernetes Deployment
 
 ### Local Development with Docker
 
@@ -95,7 +206,7 @@ helm install deep-recall ./deployments/kubernetes/helm/deep-recall -f ./deployme
 
 See the [Kubernetes deployment README](./deployments/kubernetes/README.md) for more details.
 
-## CI/CD Pipeline
+## 🔄 CI/CD Pipeline
 
 The project uses GitHub Actions for continuous integration and deployment:
 
@@ -103,12 +214,59 @@ The project uses GitHub Actions for continuous integration and deployment:
 - **CD**: Automatic image building and deployment to development environment
 - **Production**: Manual approval required for production deployments
 
-For more details, see the [CI/CD workflow documentation](./.github/workflows/README.md).
+## 📝 API Reference
 
-## Contributing
+Deep Recall provides RESTful APIs for memory management and retrieval:
+
+### Memory Management
+- `POST /api/v1/memories` - Store a new memory
+- `GET /api/v1/memories?query=<text>&user_id=<id>` - Retrieve relevant memories
+- `DELETE /api/v1/memories/{memory_id}` - Delete a specific memory
+- `DELETE /api/v1/users/{user_id}/memories` - Delete all memories for a user
+
+### User Management
+- `POST /api/v1/users` - Create a new user
+- `GET /api/v1/users/{user_id}` - Get user information
+- `DELETE /api/v1/users/{user_id}` - Delete a user and all associated data
+
+See the [API documentation](./docs/api.md) for complete details.
+
+## 📊 Performance Considerations
+
+### Memory Optimization
+- Use chunking strategies for large text inputs
+- Configure embedding dimensions based on your accuracy/performance needs
+- Implement caching for frequently accessed memories
+
+### Scaling Options
+- Horizontal scaling of memory and inference services
+- Database sharding for large-scale deployments
+- GPU-accelerated inference for production workloads
+
+## 🤝 Contributing
 
 Contributions are welcome! Feel free to open an issue or submit a pull request with enhancements and bug fixes. See [CONTRIBUTING.md](./CONTRIBUTING.md) for details on our workflow and code style.
 
-## License
+### Development Setup
+
+```bash
+# Create a virtual environment
+python -m venv venv
+source venv/bin/activate
+
+# Install development dependencies
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+
+# Setup pre-commit hooks
+pre-commit install
+```
+
+## 📄 License
 
 Distributed under the [Apache 2.0 License](LICENSE). Make it yours, and help build the future of AI-driven personalized experiences!
+
+## 🙏 Acknowledgements
+
+- This project builds upon research from the field of personalized AI assistants
+- Special thanks to the open-source ML community for providing accessible models and tools
