@@ -6,6 +6,7 @@ from typing import Dict, List, Optional, Union, Any
 import asyncio
 
 from memory.embeddings import EmbeddingModelFactory, EmbeddingModel
+from memory.semantic_search import SemanticSearch
 
 class MemoryRetriever:
     def __init__(
@@ -38,6 +39,13 @@ class MemoryRetriever:
         
         # Default similarity threshold
         self.similarity_threshold = 0.7
+        
+        # Initialize semantic search component
+        self.semantic_search = SemanticSearch(
+            memory_store=memory_store,
+            embedding_model=self.embedding_model,
+            default_similarity_threshold=self.similarity_threshold
+        )
 
     def embed_text(self, text: str) -> np.ndarray:
         """
@@ -156,5 +164,134 @@ class MemoryRetriever:
         """
         if 0 <= threshold <= 1:
             self.similarity_threshold = threshold
+            self.semantic_search.default_similarity_threshold = threshold
         else:
             raise ValueError("Similarity threshold must be between 0 and 1")
+            
+    def search_memory(self,
+                     query: str,
+                     k: int = 5,
+                     threshold: Optional[float] = None,
+                     metric: str = "cosine",
+                     filter_metadata: Optional[Dict[str, Any]] = None,
+                     page: int = 1,
+                     items_per_page: Optional[int] = None) -> Dict[str, Any]:
+        """
+        Advanced semantic search with pagination and different similarity metrics.
+        
+        Args:
+            query: The text query to find relevant memories for
+            k: Maximum number of results to return
+            threshold: Optional similarity threshold (0-1), overrides default
+            metric: Similarity metric to use ("cosine", "euclidean", "dot")
+            filter_metadata: Optional filter to apply on metadata fields
+            page: Page number for pagination (starting at 1)
+            items_per_page: Number of items per page
+            
+        Returns:
+            Dictionary containing search results with pagination info
+        """
+        return self.semantic_search.search(
+            query=query,
+            k=k,
+            threshold=threshold,
+            metric=metric,
+            filter_metadata=filter_metadata,
+            page=page,
+            items_per_page=items_per_page
+        )
+    
+    def hybrid_search_memory(self,
+                            query: str,
+                            k: int = 5,
+                            semantic_weight: float = 0.7,
+                            keyword_weight: float = 0.3,
+                            filter_metadata: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+        """
+        Perform hybrid search combining semantic similarity with keyword matching.
+        
+        Args:
+            query: The text query to search for
+            k: Maximum number of results to return
+            semantic_weight: Weight for semantic search component (0-1)
+            keyword_weight: Weight for keyword matching component (0-1)
+            filter_metadata: Optional filter to apply on metadata fields
+            
+        Returns:
+            List of search results sorted by combined score
+        """
+        return self.semantic_search.hybrid_search(
+            query=query,
+            k=k,
+            semantic_weight=semantic_weight,
+            keyword_weight=keyword_weight,
+            filter_metadata=filter_metadata
+        )
+    
+    def search_by_metadata(self,
+                          filter_metadata: Dict[str, Any],
+                          query: Optional[str] = None,
+                          k: int = 10) -> List[Dict[str, Any]]:
+        """
+        Search memories by metadata with optional semantic filtering.
+        
+        Args:
+            filter_metadata: Metadata filters to apply (e.g., user_id, tags, timestamp_range)
+            query: Optional text query for semantic refinement
+            k: Maximum number of results to return
+            
+        Returns:
+            List of memories matching the metadata criteria
+        """
+        if query:
+            # If query is provided, use semantic search with metadata filtering
+            return self.search_memory(
+                query=query,
+                k=k,
+                filter_metadata=filter_metadata
+            )["results"]
+        
+        # If no query, just filter based on metadata
+        results = []
+        for memory_id, metadata in self.memory_store.metadata.items():
+            if self._matches_filter(metadata, filter_metadata):
+                if memory_id in self.memory_store.text_data:
+                    results.append({
+                        "id": memory_id,
+                        "text": self.memory_store.text_data[memory_id],
+                        "similarity": 1.0,  # Full match on metadata
+                        "metadata": metadata
+                    })
+                    
+                    if len(results) >= k:
+                        break
+                        
+        return results
+    
+    @staticmethod
+    def _matches_filter(metadata: Dict[str, Any], filter_metadata: Dict[str, Any]) -> bool:
+        """Check if metadata matches the filter criteria."""
+        for key, value in filter_metadata.items():
+            # Special case for timestamp range
+            if key == 'timestamp_range' and isinstance(value, list) and len(value) == 2:
+                if 'timestamp' not in metadata:
+                    return False
+                    
+                start, end = value
+                timestamp = metadata['timestamp']
+                
+                if (start and timestamp < start) or (end and timestamp > end):
+                    return False
+                continue
+                
+            # Special case for tags (match any)
+            if key == 'tags' and isinstance(value, list):
+                if 'tags' not in metadata or not set(value).intersection(set(metadata['tags'])):
+                    return False
+                continue
+                
+            # Normal exact matching
+            if key not in metadata or metadata[key] != value:
+                return False
+                
+        return True
