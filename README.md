@@ -29,6 +29,46 @@ A **hyper-personalized agent memory framework** for open-source Large Language M
    ```
    This adds sample user messages, retrieves relevant memory, and demonstrates how to integrate an open-source LLM.
 
+## Testing
+
+The project includes comprehensive unit tests, integration tests, and API tests.
+
+### Running Tests Locally
+
+We provide a convenient script to run tests:
+
+```bash
+# Run all tests
+./scripts/run_tests.sh
+
+# Run only unit tests
+./scripts/run_tests.sh --unit
+
+# Run integration tests with HTML coverage report
+./scripts/run_tests.sh --integration --cov
+
+# Get help with all test options
+./scripts/run_tests.sh --help
+```
+
+### Test Structure
+
+Tests are organized by type:
+- **Unit Tests**: Tests for individual components (memory store, embeddings, vector DB)
+- **Integration Tests**: Tests for the complete memory pipeline
+- **API Tests**: Tests for the API endpoints
+
+### Continuous Integration
+
+All tests run automatically on GitHub Actions for every pull request and push to main. The CI pipeline includes:
+- Unit tests across multiple Python versions
+- Integration tests
+- API tests
+- Code linting and formatting checks
+- Code coverage reporting
+
+For more details on CI, see the [CI/CD workflow documentation](./.github/workflows/README.md).
+
 ## Docker & Kubernetes Deployment
 
 ### Local Development with Docker
