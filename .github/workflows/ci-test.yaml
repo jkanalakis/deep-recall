@@ -1,0 +1,100 @@
+name: CI - Test
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  pull_request:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: deep_recall
+          POSTGRES_PASSWORD: deep_recall_password
+          POSTGRES_DB: deep_recall
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      qdrant:
+        image: qdrant/qdrant:latest
+        ports:
+          - 6333:6333
+          - 6334:6334
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+      
+      - name: Run database setup
+        run: |
+          PGPASSWORD=deep_recall_password psql -h localhost -U deep_recall -d deep_recall -f init_db.sql
+          PGPASSWORD=deep_recall_password psql -h localhost -U deep_recall -d deep_recall -f schema.sql
+      
+      - name: Run tests
+        env:
+          DATABASE_URL: postgresql://deep_recall:deep_recall_password@localhost/deep_recall
+          VECTOR_DB_URL: http://localhost:6333
+          LOG_LEVEL: DEBUG
+        run: |
+          pytest --cov=./ --cov-report=xml
+      
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.xml
+          fail_ci_if_error: false
+          verbose: true
+
+  lint:
+    name: Code Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 black isort
+      
+      - name: Run linting
+        run: |
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          black --check .
+          isort --check-only --profile black . 

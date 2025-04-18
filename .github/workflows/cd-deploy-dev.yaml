@@ -1,0 +1,94 @@
+name: CD - Deploy to Dev
+
+on:
+  workflow_run:
+    workflows: ["CD - Build Images"]
+    types:
+      - completed
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag to deploy'
+        required: false
+        type: string
+        default: 'latest'
+
+env:
+  REGISTRY: ghcr.io
+  ORGANIZATION: ${{ github.repository_owner }}
+  KUBECONFIG: ${{ github.workspace }}/kubeconfig
+  ENVIRONMENT: dev
+
+jobs:
+  deploy-dev:
+    name: Deploy to Dev Environment
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.DEV_KUBECONFIG }}" > $KUBECONFIG
+          chmod 600 $KUBECONFIG
+      
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.26.0'
+      
+      - name: Set Image Tag
+        id: image-tag
+        run: |
+          if [[ "${{ github.event.inputs.image_tag }}" != "" ]]; then
+            IMAGE_TAG="${{ github.event.inputs.image_tag }}"
+          else
+            # Use latest if not specified
+            IMAGE_TAG="latest"
+          fi
+          echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_ENV
+          
+          # Set repository variables
+          REGISTRY_PREFIX="${{ env.REGISTRY }}/${{ env.ORGANIZATION }}"
+          echo "REGISTRY_PREFIX=${REGISTRY_PREFIX}" >> $GITHUB_ENV
+      
+      - name: Deploy to dev environment with Kustomize
+        working-directory: deployments/kubernetes
+        run: |
+          # Update kustomization.yaml to use our registry and tag
+          cd overlays/dev
+          
+          # Set the registry and tag in kustomization.yaml
+          sed -i "s|registry:.*|registry: ${REGISTRY_PREFIX}/|g" kustomization.yaml
+          sed -i "s|tag:.*|tag: ${IMAGE_TAG}|g" kustomization.yaml
+          
+          # Print the updated kustomization file
+          echo "Updated kustomization.yaml:"
+          cat kustomization.yaml
+          
+          # Apply the changes
+          cd ../..
+          kubectl apply -k overlays/dev --prune -l app=deep-recall,environment=dev
+      
+      - name: Verify deployment
+        run: |
+          kubectl get pods -n deep-recall-dev
+          
+          # Wait for deployments to be ready
+          kubectl rollout status deployment/dev-deep-recall-memory -n deep-recall-dev --timeout=300s
+          kubectl rollout status deployment/dev-deep-recall-inference -n deep-recall-dev --timeout=300s
+          kubectl rollout status deployment/dev-deep-recall-orchestrator -n deep-recall-dev --timeout=300s
+      
+      - name: Deployment Summary
+        run: |
+          echo "## Dev Deployment Summary :rocket:" >> $GITHUB_STEP_SUMMARY
+          echo "Environment: **${{ env.ENVIRONMENT }}**" >> $GITHUB_STEP_SUMMARY
+          echo "Image Tag: **${{ env.IMAGE_TAG }}**" >> $GITHUB_STEP_SUMMARY
+          
+          echo "### Services:" >> $GITHUB_STEP_SUMMARY
+          kubectl get deployments -n deep-recall-dev -o custom-columns=NAME:.metadata.name,READY:.status.readyReplicas,DESIRED:.spec.replicas >> $GITHUB_STEP_SUMMARY 

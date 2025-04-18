@@ -1,7 +1,7 @@
 # deep-recall
-A hyper-personalized agent memory framework for open-source LLMs to store, retrieve, and seamlessly integrate past user interactions. This enables LLMs to tailor responses with relevant personal context. It’s lightweight, extensible, and easy to deploy on any cloud or local environment.
+A hyper-personalized agent memory framework for open-source LLMs to store, retrieve, and seamlessly integrate past user interactions. This enables LLMs to tailor responses with relevant personal context. It's lightweight, extensible, and easy to deploy on any cloud or local environment.
 
-A **hyper-personalized agent memory framework** for open-source Large Language Models (LLMs). RecallChain stores, retrieves, and seamlessly integrates past user interactions—allowing LLMs to tailor responses with relevant personal context. It’s lightweight, extensible, and easy to deploy on any cloud or local environment.
+A **hyper-personalized agent memory framework** for open-source Large Language Models (LLMs). RecallChain stores, retrieves, and seamlessly integrates past user interactions—allowing LLMs to tailor responses with relevant personal context. It's lightweight, extensible, and easy to deploy on any cloud or local environment.
 
 ## Key Features
 
@@ -28,6 +28,42 @@ A **hyper-personalized agent memory framework** for open-source Large Language M
    python examples/user_history_example.py
    ```
    This adds sample user messages, retrieves relevant memory, and demonstrates how to integrate an open-source LLM.
+
+## Docker & Kubernetes Deployment
+
+### Local Development with Docker
+
+For local development using Docker, use the provided script:
+
+```bash
+./deployments/docker/start_dev.sh
+```
+
+This detects your hardware capabilities and starts the appropriate containers.
+
+### Kubernetes Deployment
+
+Deploy to Kubernetes using either Kustomize or Helm:
+
+```bash
+# Using Kustomize for dev environment
+./deployments/kubernetes/deploy.sh --environment dev
+
+# Using Helm for prod environment
+helm install deep-recall ./deployments/kubernetes/helm/deep-recall -f ./deployments/kubernetes/helm/deep-recall/values/prod.yaml
+```
+
+See the [Kubernetes deployment README](./deployments/kubernetes/README.md) for more details.
+
+## CI/CD Pipeline
+
+The project uses GitHub Actions for continuous integration and deployment:
+
+- **CI**: Automated testing and linting on pull requests
+- **CD**: Automatic image building and deployment to development environment
+- **Production**: Manual approval required for production deployments
+
+For more details, see the [CI/CD workflow documentation](./.github/workflows/README.md).
 
 ## Contributing
 

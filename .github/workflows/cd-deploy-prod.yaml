@@ -1,0 +1,113 @@
+name: CD - Deploy to Production
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag to deploy (defaults to latest release)'
+        required: false
+        type: string
+
+env:
+  REGISTRY: ghcr.io
+  ORGANIZATION: ${{ github.repository_owner }}
+  KUBECONFIG: ${{ github.workspace }}/kubeconfig
+  ENVIRONMENT: prod
+
+jobs:
+  deploy-approval:
+    name: Approval for Production Deployment
+    runs-on: ubuntu-latest
+    environment: 
+      name: production
+      url: https://api.deep-recall.example.com
+    
+    steps:
+      - name: Production deployment approval
+        run: echo "Production deployment has been approved!"
+
+  deploy-prod:
+    name: Deploy to Production Environment
+    needs: deploy-approval
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.PROD_KUBECONFIG }}" > $KUBECONFIG
+          chmod 600 $KUBECONFIG
+      
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.26.0'
+      
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'v3.11.2'
+      
+      - name: Set Image Tag
+        id: image-tag
+        run: |
+          if [[ "${{ github.event.inputs.image_tag }}" != "" ]]; then
+            IMAGE_TAG="${{ github.event.inputs.image_tag }}"
+          elif [[ "${{ github.event_name }}" == "release" ]]; then
+            # Use the tag from the release
+            IMAGE_TAG="${{ github.event.release.tag_name }}"
+            # Remove 'v' prefix if present
+            IMAGE_TAG="${IMAGE_TAG#v}"
+          else
+            # Get latest release tag
+            LATEST_RELEASE=$(curl -s "https://api.github.com/repos/${{ github.repository }}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+            # Remove 'v' prefix if present
+            IMAGE_TAG="${LATEST_RELEASE#v}"
+          fi
+          echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_ENV
+          
+          # Set registry prefix
+          REGISTRY_PREFIX="${{ env.REGISTRY }}/${{ env.ORGANIZATION }}"
+          echo "REGISTRY_PREFIX=${REGISTRY_PREFIX}" >> $GITHUB_ENV
+      
+      - name: Deploy to production with Helm
+        working-directory: deployments/kubernetes
+        run: |
+          # Add required Helm repositories
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm repo add qdrant https://qdrant.github.io/qdrant-helm
+          helm repo update
+          
+          # Deploy with Helm
+          helm upgrade --install deep-recall ./helm/deep-recall \
+            --namespace deep-recall \
+            --create-namespace \
+            -f ./helm/deep-recall/values/prod.yaml \
+            --set global.registry="${REGISTRY_PREFIX}/" \
+            --set memoryService.image.tag="${IMAGE_TAG}" \
+            --set inferenceService.image.tag="${IMAGE_TAG}" \
+            --set orchestratorService.image.tag="${IMAGE_TAG}" \
+            --wait
+      
+      - name: Verify deployment
+        run: |
+          kubectl get pods -n deep-recall
+          
+          # Wait for deployments to be ready
+          kubectl rollout status deployment/deep-recall-memory-service -n deep-recall --timeout=300s
+          kubectl rollout status deployment/deep-recall-inference-service -n deep-recall --timeout=300s
+          kubectl rollout status deployment/deep-recall-orchestrator -n deep-recall --timeout=300s
+      
+      - name: Deployment Summary
+        run: |
+          echo "## Production Deployment Summary :rocket:" >> $GITHUB_STEP_SUMMARY
+          echo "Environment: **${{ env.ENVIRONMENT }}**" >> $GITHUB_STEP_SUMMARY
+          echo "Image Tag: **${{ env.IMAGE_TAG }}**" >> $GITHUB_STEP_SUMMARY
+          
+          echo "### Services:" >> $GITHUB_STEP_SUMMARY
+          kubectl get deployments -n deep-recall -o custom-columns=NAME:.metadata.name,READY:.status.readyReplicas,DESIRED:.spec.replicas >> $GITHUB_STEP_SUMMARY 
