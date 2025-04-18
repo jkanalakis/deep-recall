@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-dev \
     git \
     wget \
+    curl \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -22,6 +23,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip3 install --no-cache-dir -r requirements.txt
 RUN pip3 install --no-cache-dir "pydantic>=1.9.0,<2.0.0" gunicorn
+RUN pip3 install --no-cache-dir httpx
 
 # For GPU acceleration with PyTorch
 RUN pip3 install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
@@ -38,6 +40,7 @@ RUN mkdir -p /app/model_cache
 ENV MODEL_CACHE_DIR=/app/model_cache
 ENV MODEL_TYPE=deepseek_r1
 ENV MODEL_CONFIG_PATH=/app/config/model_config.yaml
+ENV MEMORY_SERVICE_URL=http://memory-service:8080
 
 # Expose the port the app runs on
 EXPOSE 8000

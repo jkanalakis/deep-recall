@@ -16,6 +16,9 @@ services:
       - MODEL_TYPE=deepseek_r1
       - LOG_LEVEL=INFO
       - CUDA_VISIBLE_DEVICES=0
+      - MEMORY_SERVICE_URL=${MEMORY_SERVICE_URL:-http://memory-service:8080}
+    networks:
+      - deep-recall-network
     deploy:
       resources:
         reservations:
@@ -26,4 +29,9 @@ services:
 
 volumes:
   model_cache:
-    driver: local 
+    driver: local
+
+networks:
+  deep-recall-network:
+    name: deep-recall-network
+    driver: bridge 
