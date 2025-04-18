@@ -9,6 +9,8 @@ resources:
 - memory-service.yaml
 - orchestrator-service.yaml
 - configmap.yaml
+- prometheus.yaml
+- grafana.yaml
 
 commonLabels:
   app: deep-recall

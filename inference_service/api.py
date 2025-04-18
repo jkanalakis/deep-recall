@@ -15,6 +15,7 @@ import asyncio
 from uuid import uuid4
 from inference_service.memory_integration import get_context_for_prompt, get_mock_context
 from models.gpu_optimizations import QuantizationMode, ParallelMode, optimize_cuda_memory, clear_gpu_memory
+from inference_service.metrics import setup_metrics, get_metrics_exporter
 
 # Configure logger
 logger.remove()
@@ -56,6 +57,11 @@ except Exception as e:
 if torch.cuda.is_available():
     optimize_cuda_memory()
     logger.info(f"Applied CUDA memory optimizations. Available GPUs: {torch.cuda.device_count()}")
+
+# Initialize metrics
+metrics_port = int(os.environ.get("METRICS_PORT", "8000"))
+metrics_exporter = setup_metrics(port=metrics_port)
+logger.info(f"Metrics exporter initialized on port {metrics_port}")
 
 class InferenceRequest(BaseModel):
     prompt: str
@@ -592,62 +598,73 @@ async def generate_stream_response(model, request: InferenceRequest) -> AsyncIte
 @app.post("/v1/completions", response_model=InferenceResponse)
 async def generate_completion(request: InferenceRequest):
     """
-    Generate text completion using the loaded model
+    Generate a completion for the given prompt
     """
-    model_name = request.model
+    global LOADED_MODELS, DEFAULT_MODEL
+    
+    if not LOADED_MODELS:
+        raise HTTPException(status_code=503, detail="No models loaded")
+    
+    # Get the appropriate model
+    model_name = request.model or DEFAULT_MODEL
     model = get_model_by_name(model_name)
     
     if not model:
-        if not model_name:
-            raise HTTPException(status_code=503, detail="No models loaded")
-        else:
-            # Try to load the requested model
-            try:
-                model = await load_model(model_name)
-            except Exception as e:
-                raise HTTPException(status_code=503, detail=f"Model {model_name} could not be loaded: {str(e)}")
+        raise HTTPException(status_code=404, detail=f"Model not found: {model_name}")
     
-    # Handle streaming response if requested
-    if request.stream:
-        return StreamingResponse(
-            generate_stream_response(model, request),
-            media_type="text/event-stream"
-        )
-    
-    # Regular synchronous response
     start_time = time.time()
     
     try:
-        # Generate the text
-        generated_text = model.generate_reply(
-            request.prompt,
-            max_new_tokens=request.max_tokens,
+        # Track request in metrics
+        metrics_exporter.track_request_start(model.model_id, "/v1/completions")
+        metrics_exporter.track_request_processing()
+        
+        # Format the context if provided
+        context = []
+        if request.context:
+            context = request.context
+        
+        # Generate the completion
+        result = await model.generate(
+            prompt=request.prompt,
+            max_tokens=request.max_tokens,
             temperature=request.temperature,
-            top_p=request.top_p
+            top_p=request.top_p,
+            frequency_penalty=request.frequency_penalty,
+            presence_penalty=request.presence_penalty,
+            stop_sequences=request.stop_sequences,
+            context=context
         )
         
-        # Calculate token usage (rough estimation)
-        prompt_tokens = len(request.prompt.split())
-        completion_tokens = len(generated_text.split())
+        # Calculate latency
+        latency_ms = (time.time() - start_time) * 1000
         
-        inference_time = time.time() - start_time
-        
-        return InferenceResponse(
-            text=generated_text,
-            usage={
-                "prompt_tokens": prompt_tokens,
-                "completion_tokens": completion_tokens,
-                "total_tokens": prompt_tokens + completion_tokens
-            },
-            model=model.model_id if hasattr(model, "model_id") else MODEL_TYPE,
-            inference_time=inference_time,
-            request_id=str(uuid4())
+        # Track metrics for the completed request
+        metrics_exporter.track_request_complete(
+            latency_ms=latency_ms,
+            prompt_tokens=result["usage"]["prompt_tokens"],
+            completion_tokens=result["usage"]["completion_tokens"]
         )
-    
+        
+        # Calculate memory usage for metrics
+        if torch.cuda.is_available():
+            gpu_memory_bytes = torch.cuda.memory_allocated()
+            per_request_mb = gpu_memory_bytes / (1024 * 1024) / max(1, metrics_exporter.active_requests)
+            metrics_exporter.update_memory_usage(gpu_memory_bytes, per_request_mb)
+        
+        return {
+            "text": result["text"],
+            "usage": result["usage"],
+            "model": model.model_id,
+            "inference_time": latency_ms / 1000,  # Convert to seconds
+            "request_id": str(uuid4())
+        }
+        
     except Exception as e:
-        logger.error(f"Inference error: {str(e)}")
-        logger.exception(e)
-        raise HTTPException(status_code=500, detail=f"Inference failed: {str(e)}")
+        # Track error in metrics
+        metrics_exporter.track_error(error_type=type(e).__name__)
+        logger.exception(f"Error generating completion: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/v1/batch_completions", response_model=BatchInferenceResponse)
 async def batch_generate_completions(request: BatchInferenceRequest):

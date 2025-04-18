@@ -41,9 +41,11 @@ ENV MODEL_CACHE_DIR=/app/model_cache
 ENV MODEL_TYPE=deepseek_r1
 ENV MODEL_CONFIG_PATH=/app/config/model_config.yaml
 ENV MEMORY_SERVICE_URL=http://memory-service:8080
+ENV METRICS_PORT=8001
 
-# Expose the port the app runs on
+# Expose the API and metrics ports
 EXPOSE 8000
+EXPOSE 8001
 
 # Set up health check
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
