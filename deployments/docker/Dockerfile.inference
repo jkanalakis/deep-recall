@@ -26,7 +26,11 @@ RUN pip3 install --no-cache-dir "pydantic>=1.9.0,<2.0.0" gunicorn
 RUN pip3 install --no-cache-dir httpx
 
 # For GPU acceleration with PyTorch
-RUN pip3 install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+RUN pip3 install --no-cache-dir --upgrade pip && \
+    pip3 install --no-cache-dir setuptools wheel && \
+    pip3 install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cu121 && \
+    pip3 install --no-cache-dir torchvision --index-url https://download.pytorch.org/whl/cu121 && \
+    pip3 install --no-cache-dir torchaudio --index-url https://download.pytorch.org/whl/cu121
 
 # Copy necessary files
 COPY models/ /app/models/
