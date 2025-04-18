@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: model-cache-pvc
+  labels:
+    app: deep-recall
+    component: storage
+spec:
+  accessModes:
+    - ReadWriteMany  # Allow multiple pods to read/write
+  resources:
+    requests:
+      storage: 50Gi  # Adjust based on model size requirements
+  storageClassName: standard  # Adjust based on your cluster's storage classes 

@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deep-recall-inference
+spec:
+  replicas: 1  # Start with 1 replica in dev
+  template:
+    spec:
+      containers:
+      - name: inference
+        resources:
+          limits:
+            nvidia.com/gpu: 1
+            memory: "12Gi"  # Reduced memory for dev environment
+            cpu: "2"
+          requests:
+            memory: "6Gi"
+            cpu: "1"
+        env:
+        - name: LOG_LEVEL
+          value: "DEBUG"  # More verbose logging in dev
+        - name: MODEL_TYPE
+          value: "deepseek_r1_quantized"  # Use quantized model to save resources
+      nodeSelector:
+        cloud.google.com/gke-accelerator: "nvidia-tesla-t4" 

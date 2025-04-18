@@ -1,0 +1,29 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- inference-deployment.yaml
+- inference-hpa.yaml
+- model-cache-pvc.yaml
+- custom-metrics-adapter.yaml
+
+commonLabels:
+  app: deep-recall
+  environment: base
+
+# Variables will be substituted in the resource files
+vars:
+- name: REGISTRY
+  objref:
+    kind: Deployment
+    name: deep-recall-inference
+    apiVersion: apps/v1
+  fieldref:
+    fieldpath: metadata.labels.registry
+- name: TAG
+  objref:
+    kind: Deployment
+    name: deep-recall-inference
+    apiVersion: apps/v1
+  fieldref:
+    fieldpath: metadata.labels.tag 

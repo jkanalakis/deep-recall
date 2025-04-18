@@ -1,0 +1,20 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: deep-recall-inference-hpa
+spec:
+  minReplicas: 1
+  maxReplicas: 3  # Limit to 3 replicas in dev
+  metrics:
+  # CPU-based scaling
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 80  # Higher threshold for dev environment
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 120  # Slower scale-up in dev
+    scaleDown:
+      stabilizationWindowSeconds: 180  # Faster scale-down in dev 

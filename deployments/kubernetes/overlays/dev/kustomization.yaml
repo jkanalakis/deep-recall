@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- ../../base
+
+namePrefix: dev-
+
+commonLabels:
+  environment: development
+  registry: dev-registry.example.com
+  tag: latest
+
+patchesStrategicMerge:
+- patches/inference-deployment-patch.yaml
+- patches/inference-hpa-patch.yaml
+
+images:
+- name: ${REGISTRY}/deep-recall/inference-optimized
+  newName: dev-registry.example.com/deep-recall/inference-optimized
+  newTag: latest 

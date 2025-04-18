@@ -1,0 +1,81 @@
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
+  name: v1beta1.custom.metrics.k8s.io
+spec:
+  service:
+    name: custom-metrics-apiserver
+    namespace: monitoring
+  group: custom.metrics.k8s.io
+  version: v1beta1
+  insecureSkipTLSVerify: true
+  groupPriorityMinimum: 100
+  versionPriority: 100
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: adapter-config
+  namespace: monitoring
+data:
+  config.yaml: |
+    rules:
+    # LLM inference queue length - scale based on backlogs
+    - seriesQuery: '{__name__="inference_queue_length",component="inference"}'
+      resources:
+        overrides:
+          component: {resource: "pod"}
+      name:
+        matches: "inference_queue_length"
+        as: "inference_queue_length"
+      metricsQuery: avg(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>)
+    
+    # LLM inference latency - scale based on response times
+    - seriesQuery: '{__name__="inference_latency_ms",component="inference"}'
+      resources:
+        overrides:
+          component: {resource: "pod"}
+      name:
+        matches: "inference_latency_ms"
+        as: "inference_latency_ms"
+      metricsQuery: avg(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>)
+    
+    # GPU utilization - scale based on GPU usage
+    - seriesQuery: '{__name__="nvidia_gpu_utilization",component="inference"}'
+      resources:
+        overrides:
+          component: {resource: "pod"}
+      name:
+        matches: "nvidia_gpu_utilization"
+        as: "gpu_utilization"
+      metricsQuery: avg(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>)
+    
+    # Token throughput - scale based on token processing rate
+    - seriesQuery: '{__name__="tokens_per_second",component="inference"}'
+      resources:
+        overrides:
+          component: {resource: "pod"}
+      name:
+        matches: "tokens_per_second"
+        as: "tokens_per_second"
+      metricsQuery: avg(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>)
+    
+    # Request rate - scale based on incoming request rate
+    - seriesQuery: '{__name__="requests_per_second",component="inference"}'
+      resources:
+        overrides:
+          component: {resource: "pod"}
+      name:
+        matches: "requests_per_second"
+        as: "requests_per_second"
+      metricsQuery: avg(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>)
+    
+    # Memory usage per request - scale based on memory efficiency
+    - seriesQuery: '{__name__="memory_per_request_mb",component="inference"}'
+      resources:
+        overrides:
+          component: {resource: "pod"}
+      name:
+        matches: "memory_per_request_mb"
+        as: "memory_per_request_mb"
+      metricsQuery: avg(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>) 

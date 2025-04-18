@@ -1,0 +1,124 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deep-recall-inference
+  labels:
+    app: deep-recall
+    component: inference
+spec:
+  replicas: 1  # Initial replica count - will be managed by HPA
+  selector:
+    matchLabels:
+      app: deep-recall
+      component: inference
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: deep-recall
+        component: inference
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+      - name: inference
+        image: ${REGISTRY}/deep-recall/inference-optimized:${TAG}
+        imagePullPolicy: IfNotPresent
+        resources:
+          limits:
+            nvidia.com/gpu: 1  # Request 1 GPU per pod
+            memory: "16Gi"
+            cpu: "4"
+          requests:
+            memory: "8Gi"
+            cpu: "2"
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+        env:
+        - name: MODEL_TYPE
+          value: "deepseek_r1"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: MEMORY_SERVICE_URL
+          value: "http://deep-recall-memory:8080"
+        - name: PYTORCH_CUDA_ALLOC_CONF
+          value: "max_split_size_mb:128"
+        - name: OMP_NUM_THREADS
+          value: "1"
+        - name: TOKENIZERS_PARALLELISM
+          value: "true"
+        - name: MAX_BATCH_SIZE
+          value: "8"
+        - name: ENABLE_DYNAMIC_BATCHING
+          value: "true"
+        volumeMounts:
+        - name: model-cache
+          mountPath: /app/model_cache
+        - name: offload-folder
+          mountPath: /app/offload_folder
+        - name: logs
+          mountPath: /app/logs
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 120
+          periodSeconds: 30
+          failureThreshold: 3
+      volumes:
+      - name: model-cache
+        persistentVolumeClaim:
+          claimName: model-cache-pvc
+      - name: offload-folder
+        emptyDir: {}
+      - name: logs
+        emptyDir: {}
+      nodeSelector:
+        cloud.google.com/gke-accelerator: "nvidia-tesla-t4"  # Adjust for your cloud provider
+      # Allow only one inference pod per GPU node
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: component
+                  operator: In
+                  values:
+                  - inference
+              topologyKey: kubernetes.io/hostname
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: deep-recall-inference
+  labels:
+    app: deep-recall
+    component: inference
+spec:
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: deep-recall
+    component: inference
+  type: ClusterIP 

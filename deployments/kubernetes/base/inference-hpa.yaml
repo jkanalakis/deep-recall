@@ -1,0 +1,57 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: deep-recall-inference-hpa
+  labels:
+    app: deep-recall
+    component: inference
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: deep-recall-inference
+  minReplicas: 1
+  maxReplicas: 10  # Maximum number of replica pods - adjust based on available GPU nodes
+  metrics:
+  # CPU-based scaling
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70  # Scale when CPU utilization reaches 70%
+  # Memory-based scaling
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80  # Scale when memory utilization reaches 80%
+  # Custom metrics-based scaling (requires custom metrics adapter setup)
+  - type: Pods
+    pods:
+      metric:
+        name: inference_queue_length
+      target:
+        type: AverageValue
+        averageValue: 5  # Scale when average queue length exceeds 5
+  - type: Pods
+    pods:
+      metric:
+        name: inference_latency_ms
+      target:
+        type: AverageValue
+        averageValue: 2000  # Scale when average inference latency exceeds 2000ms
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60  # Wait 1 minute before scaling up again
+      policies:
+      - type: Pods
+        value: 1  # Add 1 pod at a time
+        periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300  # Wait 5 minutes before scaling down
+      policies:
+      - type: Pods
+        value: 1  # Remove 1 pod at a time
+        periodSeconds: 120 

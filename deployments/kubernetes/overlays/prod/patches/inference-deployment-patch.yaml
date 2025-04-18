@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deep-recall-inference
+spec:
+  replicas: 2  # Start with 2 replicas in production
+  template:
+    spec:
+      containers:
+      - name: inference
+        resources:
+          limits:
+            nvidia.com/gpu: 1
+            memory: "24Gi"  # More memory for production environment
+            cpu: "8"
+          requests:
+            memory: "16Gi"
+            cpu: "4"
+        env:
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: MODEL_TYPE
+          value: "deepseek_r1"  # Use full model in production
+        - name: ENABLE_BATCH_PREFETCH
+          value: "true"  # Enable prefetching for better throughput
+        - name: MAX_BATCH_SIZE
+          value: "16"  # Larger batch size in production
+      # Use more powerful GPUs in production
+      nodeSelector:
+        cloud.google.com/gke-accelerator: "nvidia-tesla-v100"
+      # Enable topology spread constraints for high availability
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            component: inference 
