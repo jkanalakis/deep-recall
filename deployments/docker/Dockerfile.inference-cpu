@@ -1,0 +1,50 @@
+FROM python:3.10-slim
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    git \
+    wget \
+    curl \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set up a working directory
+WORKDIR /app
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir "pydantic>=1.9.0,<2.0.0" gunicorn
+RUN pip install --no-cache-dir httpx
+
+# For CPU-only PyTorch
+RUN pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+
+# Copy necessary files
+COPY models/ /app/models/
+COPY config/ /app/config/
+COPY inference_service/ /app/inference_service/
+
+# Create model cache directory
+RUN mkdir -p /app/model_cache
+
+# Environment variables for model configuration
+ENV MODEL_CACHE_DIR=/app/model_cache
+ENV MODEL_TYPE=deepseek_r1
+ENV MODEL_CONFIG_PATH=/app/config/model_config.yaml
+ENV MEMORY_SERVICE_URL=http://memory-service:8080
+
+# Expose the port the app runs on
+EXPOSE 8000
+
+# Set up health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8000/health || exit 1
+
+# Command to run the application with hot reloading for development
+CMD ["uvicorn", "inference_service.api:app", "--host", "0.0.0.0", "--port", "8000", "--reload"] 

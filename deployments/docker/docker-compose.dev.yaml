@@ -1,0 +1,127 @@
+version: '3.8'
+
+services:
+  # PostgreSQL database
+  postgres:
+    image: postgres:16
+    container_name: deep-recall-postgres
+    environment:
+      POSTGRES_USER: deep_recall
+      POSTGRES_PASSWORD: deep_recall_password
+      POSTGRES_DB: deep_recall
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./../../init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+      - ./../../schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U deep_recall"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Vector database (Qdrant)
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: deep-recall-qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      QDRANT_ALLOW_RECOVERY_MODE: "true"
+
+  # Memory Service
+  memory-service:
+    build:
+      context: ../..
+      dockerfile: deployments/docker/Dockerfile.memory
+    container_name: deep-recall-memory
+    volumes:
+      - ../../:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgresql://deep_recall:deep_recall_password@postgres/deep_recall
+      VECTOR_DB_URL: http://qdrant:6333
+      PYTHONPATH: /app
+      LOG_LEVEL: DEBUG
+    restart: on-failure
+
+  # Inference Service (GPU version)
+  inference-service-gpu:
+    build:
+      context: ../..
+      dockerfile: deployments/docker/Dockerfile.inference
+    container_name: deep-recall-inference
+    profiles: ["gpu"]
+    volumes:
+      - ../../:/app
+      - model_cache:/app/model_cache
+    ports:
+      - "8080:8000"
+    environment:
+      MEMORY_SERVICE_URL: http://memory-service:8000
+      MODEL_CACHE_DIR: /app/model_cache
+      MODEL_TYPE: deepseek_r1
+      MODEL_CONFIG_PATH: /app/config/model_config.yaml
+      LOG_LEVEL: DEBUG
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: on-failure
+
+  # Inference Service (CPU version)
+  inference-service-cpu:
+    build:
+      context: ../..
+      dockerfile: deployments/docker/Dockerfile.inference-cpu
+    container_name: deep-recall-inference
+    profiles: ["default", "cpu"]
+    volumes:
+      - ../../:/app
+      - model_cache:/app/model_cache
+    ports:
+      - "8080:8000"
+    environment:
+      MEMORY_SERVICE_URL: http://memory-service:8000
+      MODEL_CACHE_DIR: /app/model_cache
+      MODEL_TYPE: deepseek_r1
+      MODEL_CONFIG_PATH: /app/config/model_config.yaml
+      LOG_LEVEL: DEBUG
+      USE_QUANTIZATION: "true"  # Enable quantization for CPU mode
+    restart: on-failure
+
+  # Orchestrator Service
+  orchestrator:
+    build:
+      context: ../..
+      dockerfile: deployments/docker/Dockerfile.orchestrator
+    container_name: deep-recall-orchestrator
+    volumes:
+      - ../../:/app
+    ports:
+      - "8001:8001"
+    depends_on:
+      - memory-service
+    environment:
+      MEMORY_SERVICE_URL: http://memory-service:8000
+      INFERENCE_SERVICE_URL: http://inference-service:8000
+      LOG_LEVEL: DEBUG
+    restart: on-failure
+
+volumes:
+  postgres_data:
+  qdrant_data:
+  model_cache: 
