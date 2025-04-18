@@ -1,0 +1,23 @@
+apiVersion: v2
+name: deep-recall
+description: A Helm chart for the Deep Recall system
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - deep-recall
+  - llm
+  - memory
+  - personalization
+home: https://github.com/jkanalakis/deep-recall
+maintainers:
+  - name: Deep Recall Team
+dependencies:
+  - name: postgresql
+    version: ~12.5.6
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
+  - name: qdrant
+    version: ~0.4.1
+    repository: https://qdrant.github.io/qdrant-helm
+    condition: qdrant.enabled 

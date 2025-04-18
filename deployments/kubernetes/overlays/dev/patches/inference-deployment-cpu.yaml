@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deep-recall-inference
+spec:
+  template:
+    spec:
+      containers:
+      - name: inference-service
+        image: $(REGISTRY)deep-recall-inference-cpu:$(TAG)
+        env:
+        - name: USE_QUANTIZATION
+          value: "true"
+        resources:
+          limits:
+            cpu: "1"
+            memory: 4Gi
+          requests:
+            cpu: "500m"
+            memory: 2Gi 

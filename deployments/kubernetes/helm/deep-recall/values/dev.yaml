@@ -1,0 +1,50 @@
+global:
+  environment: dev
+  storageClass: standard
+
+# Disable resource limits for development
+memoryService:
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+  autoscaling:
+    enabled: false
+
+inferenceService:
+  gpu: false  # Use CPU for development by default
+  resources:
+    limits:
+      cpu: 1
+      memory: 4Gi
+    requests:
+      cpu: 500m
+      memory: 2Gi
+  autoscaling:
+    enabled: false
+  persistence:
+    size: 10Gi
+
+orchestratorService:
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+  autoscaling:
+    enabled: false
+
+# Developer-friendly settings for databases
+postgresql:
+  primary:
+    persistence:
+      size: 5Gi
+
+qdrant:
+  persistence:
+    size: 5Gi 

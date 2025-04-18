@@ -1,0 +1,152 @@
+# Global settings
+global:
+  registry: ""
+  imagePullSecrets: []
+  environment: dev
+  storageClass: standard
+
+# Common settings
+nameOverride: ""
+fullnameOverride: ""
+
+# Service account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Configuration for PostgreSQL
+postgresql:
+  enabled: true
+  auth:
+    username: deep_recall
+    password: deep_recall_password
+    database: deep_recall
+  primary:
+    persistence:
+      size: 10Gi
+  service:
+    ports:
+      postgresql: 5432
+
+# Configuration for Qdrant
+qdrant:
+  enabled: true
+  replicaCount: 1
+  persistence:
+    enabled: true
+    size: 10Gi
+  service:
+    type: ClusterIP
+    port: 6333
+    grpcPort: 6334
+
+# Memory Service
+memoryService:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: deep-recall-memory
+    tag: latest
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 1
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  service:
+    type: ClusterIP
+    port: 8000
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+  envVars:
+    DATABASE_URL: postgresql://deep_recall:deep_recall_password@{{ .Release.Name }}-postgresql/deep_recall
+    VECTOR_DB_URL: http://{{ .Release.Name }}-qdrant:6333
+    LOG_LEVEL: INFO
+
+# Inference Service
+inferenceService:
+  enabled: true
+  gpu: false  # Set to true to use GPU-enabled container
+  replicaCount: 1
+  image:
+    repository: deep-recall-inference
+    tag: latest
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 2
+      memory: 8Gi
+      # GPU limits are added conditionally in the template
+    requests:
+      cpu: 1
+      memory: 4Gi
+  service:
+    type: ClusterIP
+    port: 8000
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+  persistence:
+    enabled: true
+    size: 20Gi
+    mountPath: /app/model_cache
+  envVars:
+    MEMORY_SERVICE_URL: http://{{ .Release.Name }}-memory-service:8000
+    MODEL_CACHE_DIR: /app/model_cache
+    MODEL_TYPE: deepseek_r1
+    MODEL_CONFIG_PATH: /app/config/model_config.yaml
+    LOG_LEVEL: INFO
+    USE_QUANTIZATION: "false"  # Will be overridden for CPU mode
+
+# Orchestrator Service
+orchestratorService:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: deep-recall-orchestrator
+    tag: latest
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 1
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  service:
+    type: ClusterIP
+    port: 8001
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+  envVars:
+    MEMORY_SERVICE_URL: http://{{ .Release.Name }}-memory-service:8000
+    INFERENCE_SERVICE_URL: http://{{ .Release.Name }}-inference-service:8000
+    LOG_LEVEL: INFO
+
+# Ingress for API Gateway
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: api.deep-recall.local
+      paths:
+        - path: /
+          pathType: Prefix
+          service: orchestrator
+          port: 8001
+  tls: [] 

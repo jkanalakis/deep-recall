@@ -3,17 +3,35 @@ kind: Kustomization
 
 resources:
 - ../../base
+- ingress.yaml
+
+namespace: deep-recall
 
 namePrefix: prod-
 
 commonLabels:
-  environment: production
-  registry: prod-registry.example.com
+  environment: prod
+  registry: prod-registry.example.com/
   tag: stable
 
-patchesStrategicMerge:
-- patches/inference-deployment-patch.yaml
-- patches/inference-hpa-patch.yaml
+replicas:
+- name: deep-recall-memory
+  count: 2
+- name: deep-recall-inference
+  count: 2
+- name: deep-recall-orchestrator
+  count: 2
+
+patches:
+- path: patches/inference-deployment-gpu.yaml
+- path: patches/memory-deployment-prod.yaml
+- path: patches/orchestrator-deployment-prod.yaml
+
+configMapGenerator:
+- name: deep-recall-config
+  behavior: merge
+  literals:
+  - LOG_LEVEL=INFO
 
 images:
 - name: ${REGISTRY}/deep-recall/inference-optimized

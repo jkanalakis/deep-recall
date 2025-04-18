@@ -4,6 +4,24 @@ kind: Kustomization
 resources:
 - ../../base
 
+namespace: deep-recall-dev
+
+commonLabels:
+  environment: dev
+  registry: dev-registry.example.com/
+  tag: latest
+
+patches:
+- path: patches/inference-deployment-cpu.yaml
+- path: patches/memory-deployment-dev.yaml
+- path: patches/orchestrator-deployment-dev.yaml
+
+configMapGenerator:
+- name: deep-recall-config
+  behavior: merge
+  literals:
+  - LOG_LEVEL=DEBUG
+
 namePrefix: dev-
 
 commonLabels:

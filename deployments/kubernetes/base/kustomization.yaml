@@ -6,10 +6,19 @@ resources:
 - inference-hpa.yaml
 - model-cache-pvc.yaml
 - custom-metrics-adapter.yaml
+- memory-service.yaml
+- orchestrator-service.yaml
+- configmap.yaml
 
 commonLabels:
   app: deep-recall
   environment: base
+
+configMapGenerator:
+- name: deep-recall-config
+  files:
+  - model_config.yaml=config/model_config.yaml
+  - logging_config.yaml=config/logging_config.yaml
 
 # Variables will be substituted in the resource files
 vars:

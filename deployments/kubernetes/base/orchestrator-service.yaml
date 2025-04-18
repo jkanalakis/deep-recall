@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deep-recall-orchestrator
+  labels:
+    app: deep-recall
+    component: orchestrator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: deep-recall
+      component: orchestrator
+  template:
+    metadata:
+      labels:
+        app: deep-recall
+        component: orchestrator
+    spec:
+      containers:
+      - name: orchestrator
+        image: $(REGISTRY)/deep-recall-orchestrator:$(TAG)
+        ports:
+        - containerPort: 8001
+          name: http
+        env:
+        - name: MEMORY_SERVICE_URL
+          value: http://deep-recall-memory:8000
+        - name: INFERENCE_SERVICE_URL
+          value: http://deep-recall-inference:8000
+        - name: LOG_LEVEL
+          value: INFO
+        - name: PYTHONPATH
+          value: /app
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 5
+        resources:
+          limits:
+            cpu: 1
+            memory: 2Gi
+          requests:
+            cpu: 500m
+            memory: 1Gi
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app/config
+      volumes:
+      - name: config-volume
+        configMap:
+          name: deep-recall-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: deep-recall-orchestrator
+  labels:
+    app: deep-recall
+    component: orchestrator
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8001
+    targetPort: http
+    protocol: TCP
+    name: http
+  selector:
+    app: deep-recall
+    component: orchestrator 

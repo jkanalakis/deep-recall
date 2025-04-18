@@ -1,0 +1,93 @@
+global:
+  environment: prod
+  storageClass: premium-rwo  # Use a high-performance storage class
+
+# Production-ready resource limits
+memoryService:
+  replicaCount: 2
+  resources:
+    limits:
+      cpu: 2
+      memory: 4Gi
+    requests:
+      cpu: 1
+      memory: 2Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+  
+  envVars:
+    LOG_LEVEL: INFO
+
+inferenceService:
+  gpu: true  # Use GPU for production
+  replicaCount: 2
+  resources:
+    limits:
+      cpu: 4
+      memory: 16Gi
+      # GPU is defined in template
+    requests:
+      cpu: 2
+      memory: 8Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+  persistence:
+    size: 50Gi
+  envVars:
+    LOG_LEVEL: INFO
+
+orchestratorService:
+  replicaCount: 2
+  resources:
+    limits:
+      cpu: 2
+      memory: 4Gi
+    requests:
+      cpu: 1
+      memory: 2Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+  envVars:
+    LOG_LEVEL: INFO
+
+# Highly available and production-ready database
+postgresql:
+  architecture: replication
+  replicaCount: 2
+  primary:
+    persistence:
+      size: 100Gi
+  readReplicas:
+    persistence:
+      size: 100Gi
+
+qdrant:
+  replicaCount: 3
+  persistence:
+    size: 200Gi
+
+# Enable ingress in production with HTTPS
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: api.deep-recall.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: orchestrator
+          port: 8001
+  tls:
+    - secretName: deep-recall-tls
+      hosts:
+        - api.deep-recall.example.com 

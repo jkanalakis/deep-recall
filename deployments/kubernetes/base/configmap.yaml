@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: deep-recall-config
+  labels:
+    app: deep-recall
+data:
+  model_config.yaml: |
+    model_providers:
+      deepseek_r1:
+        model_id: deepseek-ai/deepseek-coder-1.3b-instruct
+        revision: main
+        tokenizer:
+          use_fast: true
+        quantization:
+          enabled: false
+          bits: 8
+        parameters:
+          max_length: 2048
+          temperature: 0.7
+          top_p: 0.95
+          repetition_penalty: 1.0
+      
+      llama3:
+        model_id: meta-llama/Meta-Llama-3-8B-Instruct
+        revision: main
+        tokenizer:
+          use_fast: true
+        quantization:
+          enabled: false
+          bits: 8
+        parameters:
+          max_length: 4096
+          temperature: 0.7
+          top_p: 0.95
+          repetition_penalty: 1.1
+  
+  logging_config.yaml: |
+    version: 1
+    formatters:
+      standard:
+        format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    handlers:
+      console:
+        class: logging.StreamHandler
+        level: INFO
+        formatter: standard
+        stream: ext://sys.stdout
+    loggers:
+      '':
+        level: INFO
+        handlers: [console]
+        propagate: no 
