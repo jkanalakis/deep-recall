@@ -6,18 +6,63 @@ models:
     revision: "main"
     trust_remote_code: true
     use_gpu: true
-    quantization: null  # Options: null, "8bit", "4bit"
+    quantization: "none"  # Options: none, int8, int4, gptq, awq
+    parallel_mode: "none"  # Options: none, tensor, pipeline, expert
     max_sequence_length: 8192
+    # Specify GPUs to use (optional)
+    gpu_ids: [0]  # To use specific GPUs
+    # Maximum memory to use per GPU (optional)
+    # max_memory: {"0": "12GiB", "1": "12GiB"}
     generation:
       max_new_tokens: 1024
       temperature: 0.7
       top_p: 0.9
       do_sample: true
   
-  # Configuration for other models can be added here
-  # llama3:
-  #   model_id: "meta-llama/Meta-Llama-3-8B"
-  #   ...
+  deepseek_r1_quantized:
+    model_id: "deepseek-ai/deepseek-coder-7b-instruct"
+    revision: "main"
+    trust_remote_code: true
+    use_gpu: true
+    quantization: "int8"  # 8-bit quantization for better memory efficiency
+    parallel_mode: "none"
+    max_sequence_length: 8192
+    generation:
+      max_new_tokens: 1024
+      temperature: 0.7
+      top_p: 0.9
+      do_sample: true
+
+  # Multi-GPU configuration example for larger models
+  deepseek_r1_distributed:
+    model_id: "deepseek-ai/deepseek-coder-7b-instruct"
+    revision: "main"
+    trust_remote_code: true
+    use_gpu: true
+    quantization: "none"
+    parallel_mode: "tensor"  # Enable tensor parallelism across GPUs
+    # gpu_ids: [0, 1]  # Uncomment to use specific GPUs
+    max_sequence_length: 8192
+    generation:
+      max_new_tokens: 1024
+      temperature: 0.7
+      top_p: 0.9
+      do_sample: true
+
+  # Example for a larger model with memory optimizations
+  deepseek_33b:
+    model_id: "deepseek-ai/deepseek-coder-33b-instruct"
+    revision: "main"
+    trust_remote_code: true
+    use_gpu: true
+    quantization: "int4"  # Stronger quantization for very large models
+    parallel_mode: "tensor"  # Use tensor parallelism
+    max_sequence_length: 4096
+    generation:
+      max_new_tokens: 1024
+      temperature: 0.7
+      top_p: 0.9
+      do_sample: true
 
 # Inference API configuration
 api:
@@ -26,13 +71,34 @@ api:
   log_level: "INFO"
   cors_origins: ["*"]
 
+# GPU Configuration
+gpu:
+  enable_tf32: true                 # Enable TF32 precision for faster computation on Ampere+ GPUs
+  enable_flash_attention: true      # Use Flash Attention 2 if available
+  max_memory_per_gpu: "80%"         # Maximum percentage of GPU memory to use per GPU
+  optimize_cuda_allocator: true     # Apply CUDA memory allocation optimizations
+  offload_to_cpu_threshold_gb: 20   # Offload models larger than this to CPU when idle (GB)
+  enable_checkpointing: false       # Enable gradient checkpointing (for fine-tuning)
+
 # Scaling configuration
 scaling:
   max_batch_size: 8
+  dynamic_batch_sizing: true        # Automatically determine optimal batch size
   max_waiting_tokens: 20
   max_active_requests: 32
+  prioritize_long_contexts: true    # Give priority to contexts with more tokens
+  concurrency_control:
+    max_parallel_sessions: 4        # Maximum number of models loaded in parallel
+    idle_timeout_seconds: 300       # Unload models after this idle time
   
 # Monitoring configuration
 monitoring:
   prometheus_metrics: true
-  health_check_interval: 30 
+  health_check_interval: 30
+  memory_stats_interval: 60         # How often to log memory statistics (seconds)
+  detailed_performance_tracking: true  # Track detailed latency and throughput metrics
+
+# Configuration for other models can be added here
+# llama3:
+#   model_id: "meta-llama/Meta-Llama-3-8B"
+#   ... 

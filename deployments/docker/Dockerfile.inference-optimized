@@ -1,0 +1,78 @@
+FROM nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV DEBIAN_FRONTEND=noninteractive
+ENV CUDA_VISIBLE_DEVICES=all
+ENV PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.10 \
+    python3-pip \
+    python3-dev \
+    git \
+    wget \
+    curl \
+    build-essential \
+    ninja-build \
+    pkg-config \
+    libopenblas-dev \
+    libopenmpi-dev \
+    libomp-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set up a working directory
+WORKDIR /app
+
+# Install optimized PyTorch with CUDA support
+RUN pip3 install --no-cache-dir torch==2.0.1+cu118 torchvision==0.15.2+cu118 torchaudio==2.0.2 --extra-index-url https://download.pytorch.org/whl/cu118
+
+# Install base Python dependencies
+COPY requirements.txt .
+RUN pip3 install --no-cache-dir -r requirements.txt
+
+# Install optional packages for performance optimization
+RUN pip3 install --no-cache-dir \
+    "bitsandbytes>=0.39.0" \
+    "optimum[onnxruntime]>=1.8.6" \
+    "flash-attn>=2.3.0" \
+    "deepspeed>=0.9.5" \
+    "triton>=2.0.0" \
+    "xformers>=0.0.20" \
+    "httpx>=0.24.1"
+
+# Copy necessary files
+COPY models/ /app/models/
+COPY config/ /app/config/
+COPY inference_service/ /app/inference_service/
+
+# Create directories
+RUN mkdir -p /app/model_cache
+RUN mkdir -p /app/offload_folder
+RUN mkdir -p /app/logs
+
+# Environment variables for model configuration
+ENV MODEL_CACHE_DIR=/app/model_cache
+ENV MODEL_TYPE=deepseek_r1
+ENV MODEL_CONFIG_PATH=/app/config/model_config.yaml
+ENV MEMORY_SERVICE_URL=http://memory-service:8080
+ENV OFFLOAD_FOLDER=/app/offload_folder
+
+# Environment variables for GPU optimization
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
+ENV TORCH_CUDA_ARCH_LIST="7.0;7.5;8.0;8.6+PTX"
+ENV CUDA_MODULE_LOADING=LAZY
+
+# Expose the port the app runs on
+EXPOSE 8000
+
+# Set up health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8000/health || exit 1
+
+# Command to run the application
+CMD ["uvicorn", "inference_service.api:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"] 

@@ -14,6 +14,7 @@ from typing import Dict, Any, Optional, List, Union, AsyncIterator
 import asyncio
 from uuid import uuid4
 from inference_service.memory_integration import get_context_for_prompt, get_mock_context
+from models.gpu_optimizations import QuantizationMode, ParallelMode, optimize_cuda_memory, clear_gpu_memory
 
 # Configure logger
 logger.remove()
@@ -50,6 +51,11 @@ try:
 except Exception as e:
     logger.error(f"Failed to load configuration: {str(e)}")
     CONFIG = {}
+
+# Apply CUDA memory optimizations on startup
+if torch.cuda.is_available():
+    optimize_cuda_memory()
+    logger.info(f"Applied CUDA memory optimizations. Available GPUs: {torch.cuda.device_count()}")
 
 class InferenceRequest(BaseModel):
     prompt: str
@@ -119,6 +125,22 @@ class PersonalizedInferenceRequest(BaseModel):
     use_mock_memory: bool = Field(False, description="Whether to use mock memory for testing")
     max_memories: int = Field(5, ge=0, le=10, description="Maximum number of memories to retrieve")
 
+class ModelLoadRequest(BaseModel):
+    model_name: str
+    quantization: Optional[str] = Field(None, description="Quantization mode")
+    parallel_mode: Optional[str] = Field(None, description="Model parallelism mode")
+    gpu_ids: Optional[List[int]] = Field(None, description="Specific GPU IDs to use")
+    max_memory: Optional[Dict[int, str]] = Field(None, description="Maximum memory per GPU")
+    prefer_gpu: bool = Field(True, description="Whether to prefer GPU over CPU")
+
+class GPUStatusResponse(BaseModel):
+    available: bool
+    count: int
+    devices: List[Dict[str, Any]]
+    total_memory_gb: float
+    used_memory_gb: float
+    free_memory_gb: float
+
 def get_model_by_name(model_name: Optional[str] = None):
     """
     Get the specified model or the default model
@@ -139,12 +161,17 @@ def get_model_by_name(model_name: Optional[str] = None):
     
     return None
 
-async def load_model(model_name: str):
+async def load_model(model_name: str, 
+                    quantization: Optional[str] = None,
+                    parallel_mode: Optional[str] = None,
+                    gpu_ids: Optional[List[int]] = None,
+                    max_memory: Optional[Dict[int, str]] = None):
     """
-    Load a model by name from config
+    Load a model by name from config with GPU optimizations
     """
     global LOADED_MODELS, CONFIG, MODEL_CACHE_DIR, DEFAULT_MODEL
     
+    # If model already loaded and no GPU config changes, return it
     if model_name in LOADED_MODELS:
         logger.info(f"Model {model_name} already loaded")
         return LOADED_MODELS[model_name]
@@ -157,11 +184,32 @@ async def load_model(model_name: str):
     
     logger.info(f"Loading model {model_name}...")
     
+    # Get model configuration
+    model_config = CONFIG["models"][model_name]
+    
+    # Determine quantization and parallelism settings
+    quant_mode = quantization or model_config.get("quantization", "none")
+    parallel = parallel_mode or model_config.get("parallel_mode", "none")
+    
+    # Check if GPU preferences specified in config
+    if gpu_ids is None and "gpu_ids" in model_config:
+        gpu_ids = model_config["gpu_ids"]
+    
+    # Check if max memory specified in config
+    if max_memory is None and "max_memory" in model_config:
+        max_memory = model_config["max_memory"]
+    
     try:
         if "deepseek" in model_name.lower():
             # Import the DeepSeek model integration
             from models.deepseek_r1_integration import DeepSeekR1Model
-            model_instance = DeepSeekR1Model(MODEL_CACHE_DIR)
+            model_instance = DeepSeekR1Model(
+                model_path=MODEL_CACHE_DIR,
+                quantization=quant_mode,
+                parallel_mode=parallel,
+                available_gpus=gpu_ids,
+                max_memory_per_gpu=max_memory
+            )
             LOADED_MODELS[model_name] = model_instance
             
             # Set as default if no default exists or if this is deepseek_r1
@@ -267,10 +315,60 @@ async def list_models():
         "default_model": DEFAULT_MODEL or "none"
     }
 
-@app.post("/v1/models/{model_name}/load", status_code=status.HTTP_202_ACCEPTED)
-async def load_model_endpoint(model_name: str, background_tasks: BackgroundTasks):
+@app.get("/v1/gpu_status", response_model=GPUStatusResponse)
+async def get_gpu_status():
     """
-    Load a model dynamically
+    Get GPU status and usage information
+    """
+    if not torch.cuda.is_available():
+        return {
+            "available": False,
+            "count": 0,
+            "devices": [],
+            "total_memory_gb": 0,
+            "used_memory_gb": 0,
+            "free_memory_gb": 0
+        }
+    
+    # Get GPU information
+    gpu_count = torch.cuda.device_count()
+    devices = []
+    total_memory = 0
+    used_memory = 0
+    
+    for i in range(gpu_count):
+        prop = torch.cuda.get_device_properties(i)
+        total_mem = prop.total_memory / (1024**3)  # Convert to GB
+        reserved_mem = torch.cuda.memory_reserved(i) / (1024**3)
+        allocated_mem = torch.cuda.memory_allocated(i) / (1024**3)
+        free_mem = total_mem - reserved_mem
+        
+        total_memory += total_mem
+        used_memory += allocated_mem
+        
+        devices.append({
+            "id": i,
+            "name": prop.name,
+            "total_memory_gb": round(total_mem, 2),
+            "reserved_memory_gb": round(reserved_mem, 2),
+            "allocated_memory_gb": round(allocated_mem, 2),
+            "free_memory_gb": round(free_mem, 2),
+            "compute_capability": f"{prop.major}.{prop.minor}"
+        })
+    
+    return {
+        "available": True,
+        "count": gpu_count,
+        "devices": devices,
+        "total_memory_gb": round(total_memory, 2),
+        "used_memory_gb": round(used_memory, 2),
+        "free_memory_gb": round(total_memory - used_memory, 2)
+    }
+
+@app.post("/v1/models/{model_name}/load", status_code=status.HTTP_202_ACCEPTED)
+async def load_model_endpoint(model_name: str, request: ModelLoadRequest, background_tasks: BackgroundTasks):
+    """
+    Load a model dynamically with GPU optimizations
     """
     global CONFIG
     
@@ -284,9 +382,104 @@ async def load_model_endpoint(model_name: str, background_tasks: BackgroundTasks
         return {"message": f"Model {model_name} already loaded"}
     
     # Load model in background
-    background_tasks.add_task(load_model, model_name)
+    background_tasks.add_task(
+        load_model, 
+        model_name=model_name,
+        quantization=request.quantization,
+        parallel_mode=request.parallel_mode,
+        gpu_ids=request.gpu_ids,
+        max_memory=request.max_memory
+    )
     
-    return {"message": f"Model {model_name} loading started"}
+    return {"message": f"Model {model_name} loading started with GPU optimizations"}
+
+@app.post("/v1/clear_gpu_memory")
+async def clear_gpu_memory_endpoint():
+    """
+    Manually clear GPU memory
+    """
+    if not torch.cuda.is_available():
+        return {"message": "No GPU available"}
+    
+    # Get memory before clearing
+    mem_before = torch.cuda.memory_allocated() / (1024**3)  # GB
+    
+    # Clear memory
+    clear_gpu_memory()
+    
+    # Get memory after clearing
+    mem_after = torch.cuda.memory_allocated() / (1024**3)  # GB
+    
+    return {
+        "message": "GPU memory cleared",
+        "memory_before_gb": round(mem_before, 2),
+        "memory_after_gb": round(mem_after, 2),
+        "freed_gb": round(mem_before - mem_after, 2)
+    }
+
+@app.post("/v1/models/{model_name}/offload")
+async def offload_model_to_cpu(model_name: str):
+    """
+    Offload a model from GPU to CPU to save memory
+    """
+    global LOADED_MODELS
+    
+    if model_name not in LOADED_MODELS:
+        raise HTTPException(status_code=404, detail=f"Model {model_name} not loaded")
+    
+    model = LOADED_MODELS[model_name]
+    
+    # Check if model has offload method
+    if not hasattr(model, "offload_to_cpu"):
+        raise HTTPException(status_code=400, detail=f"Model {model_name} does not support offloading")
+    
+    # Check if model is already on CPU
+    if hasattr(model, "is_on_gpu") and not model.is_on_gpu():
+        return {"message": f"Model {model_name} is already on CPU"}
+    
+    # Get memory before offloading
+    mem_before = torch.cuda.memory_allocated() / (1024**3) if torch.cuda.is_available() else 0
+    
+    # Offload model
+    model.offload_to_cpu()
+    
+    # Get memory after offloading
+    mem_after = torch.cuda.memory_allocated() / (1024**3) if torch.cuda.is_available() else 0
+    
+    return {
+        "message": f"Model {model_name} offloaded to CPU",
+        "memory_before_gb": round(mem_before, 2),
+        "memory_after_gb": round(mem_after, 2),
+        "freed_gb": round(mem_before - mem_after, 2)
+    }
+
+@app.post("/v1/models/{model_name}/reload")
+async def reload_model_to_gpu(model_name: str):
+    """
+    Reload a model from CPU back to GPU
+    """
+    global LOADED_MODELS
+    
+    if model_name not in LOADED_MODELS:
+        raise HTTPException(status_code=404, detail=f"Model {model_name} not loaded")
+    
+    model = LOADED_MODELS[model_name]
+    
+    # Check if model has reload method
+    if not hasattr(model, "reload_to_gpu"):
+        raise HTTPException(status_code=400, detail=f"Model {model_name} does not support reloading")
+    
+    # Check if model is already on GPU
+    if hasattr(model, "is_on_gpu") and model.is_on_gpu():
+        return {"message": f"Model {model_name} is already on GPU"}
+    
+    # Reload model
+    model.reload_to_gpu()
+    
+    return {
+        "message": f"Model {model_name} reloaded to GPU",
+        "current_memory_gb": round(torch.cuda.memory_allocated() / (1024**3), 2) if torch.cuda.is_available() else 0
+    }
 
 async def generate_stream_response(model, request: InferenceRequest) -> AsyncIterator[str]:
     """

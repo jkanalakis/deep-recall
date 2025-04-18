@@ -1,0 +1,130 @@
+version: '3.8'
+
+services:
+  inference-service:
+    build:
+      context: ../..
+      dockerfile: deployments/docker/Dockerfile.inference-optimized
+    image: deep-recall/inference-optimized:latest
+    container_name: deep-recall-inference
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - model_cache:/app/model_cache
+      - offload_folder:/app/offload_folder
+      - logs:/app/logs
+    environment:
+      - MODEL_TYPE=deepseek_r1
+      - LOG_LEVEL=INFO
+      - CUDA_VISIBLE_DEVICES=0,1  # Use specific GPUs - adjust as needed
+      - MEMORY_SERVICE_URL=${MEMORY_SERVICE_URL:-http://memory-service:8080}
+      # GPU optimization settings
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128
+      - OMP_NUM_THREADS=1  # Avoid oversubscribing CPU threads
+      - TOKENIZERS_PARALLELISM=true
+    networks:
+      - deep-recall-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all  # Use all available GPUs
+              capabilities: [gpu]
+    ulimits:
+      memlock: -1  # Unlimited memlock for GPU operations
+      stack: 67108864  # 64MB stack size
+    shm_size: 8gb  # Shared memory size for inter-process communication
+
+  # Support for multiple model servers
+  inference-quantized:
+    build:
+      context: ../..
+      dockerfile: deployments/docker/Dockerfile.inference-optimized
+    image: deep-recall/inference-optimized:latest
+    container_name: deep-recall-inference-quantized
+    restart: unless-stopped
+    ports:
+      - "8001:8000"  # Different port mapping
+    volumes:
+      - model_cache:/app/model_cache
+      - offload_folder:/app/offload_folder
+      - logs:/app/logs
+    environment:
+      - MODEL_TYPE=deepseek_r1_quantized  # Use the quantized model
+      - LOG_LEVEL=INFO
+      - CUDA_VISIBLE_DEVICES=0,1
+      - MEMORY_SERVICE_URL=${MEMORY_SERVICE_URL:-http://memory-service:8080}
+      # GPU optimization settings
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128
+      - OMP_NUM_THREADS=1
+      - TOKENIZERS_PARALLELISM=true
+    networks:
+      - deep-recall-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    ulimits:
+      memlock: -1
+      stack: 67108864
+    shm_size: 4gb
+    # Only start this container if explicitly enabled
+    profiles: ["multi-model"]
+
+  # Optional monitoring services
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: deep-recall-prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - "9090:9090"
+    networks:
+      - deep-recall-network
+    profiles: ["monitoring"]
+    
+  grafana:
+    image: grafana/grafana:latest
+    container_name: deep-recall-grafana
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin  # Change in production
+      - GF_USERS_ALLOW_SIGN_UP=false
+    ports:
+      - "3000:3000"
+    networks:
+      - deep-recall-network
+    depends_on:
+      - prometheus
+    profiles: ["monitoring"]
+
+volumes:
+  model_cache:
+    driver: local
+  offload_folder:
+    driver: local
+  logs:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  deep-recall-network:
+    name: deep-recall-network
+    driver: bridge 
