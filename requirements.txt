@@ -1,17 +1,17 @@
 # Core dependencies
-numpy>=1.20.0
 torch>=1.13.0  # Required for newer GPU optimizations
+numpy>=1.20.0
 transformers>=4.30.0  # Required for model parallelism
 accelerate>=0.20.1    # Required for GPU memory optimization
-sentencepiece>=0.1.99  # Required for some tokenizers
-faiss-cpu>=1.7.2,<1.8.0  # Use faiss-gpu for GPU support
-sentence-transformers>=2.2.0
+# sentencepiece>=0.1.99  # Required for some tokenizers
+# faiss-cpu>=1.7.2,<1.8.0  # Use faiss-gpu for GPU support
+# sentence-transformers>=2.2.0
 
 # Quantization dependencies
 bitsandbytes>=0.39.0  # Required for quantization (int8, int4)
 optimum>=1.8.6       # HuggingFace quantization toolkit
-auto-gptq>=0.4.2     # Optional: for GPTQ quantization
-autoawq>=0.1.4       # Optional: for AWQ quantization
+# auto-gptq>=0.4.2     # Optional: for GPTQ quantization
+# autoawq>=0.1.4       # Optional: for AWQ quantization
 
 # Vector database dependencies
 qdrant-client>=1.3.1  # Qdrant vector database
@@ -52,9 +52,9 @@ opentelemetry-instrumentation-sqlalchemy>=0.40b0
 opentelemetry-instrumentation-redis>=0.40b0
 
 # Model parallelism
-deepspeed>=0.9.5      # For advanced model parallelism (optional)
-torch-xla>=2.0        # For TPU support (optional)
-flash-attn>=2.3.0     # Flash Attention for faster inference (optional)
+# deepspeed>=0.9.5      # For advanced model parallelism (optional)
+# torch-xla>=2.0        # For TPU support (optional)
+# flash-attn>=2.3.0     # Flash Attention for faster inference (optional)
 
 # Testing
 pytest>=7.0.0
