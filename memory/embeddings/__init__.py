@@ -8,8 +8,8 @@ from memory.embeddings.transformer import TransformerEmbeddingModel
 from memory.embeddings.sentence_transformer import SentenceTransformerModel
 
 __all__ = [
-    'EmbeddingModel',
-    'EmbeddingModelFactory',
-    'TransformerEmbeddingModel',
-    'SentenceTransformerModel',
-] 
+    "EmbeddingModel",
+    "EmbeddingModelFactory",
+    "TransformerEmbeddingModel",
+    "SentenceTransformerModel",
+]

@@ -4,6 +4,7 @@ from memory.memory_store import MemoryStore
 from memory.memory_retriever import MemoryRetriever
 from models.deepseek_r1_integration import DeepSeekR1Model
 
+
 def main():
     # 1) Initialize Memory + Retriever
     embedding_dim = 384  # e.g., from all-MiniLM-L6-v2
@@ -17,7 +18,7 @@ def main():
     user_messages = [
         "I love sushi, especially salmon rolls.",
         "I'm planning a trip to Japan next year.",
-        "My favorite programming language is Python."
+        "My favorite programming language is Python.",
     ]
     for msg in user_messages:
         retriever.add_to_memory(msg)
@@ -44,6 +45,7 @@ def main():
 
     # 6) Save the FAISS index to disk
     memory_store.save_index()
+
 
 if __name__ == "__main__":
     main()
