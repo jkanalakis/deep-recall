@@ -24,7 +24,7 @@ from api.middleware.prometheus import PrometheusMiddleware
 app = FastAPI(
     title="deep-recall API Gateway",
     description="A scalable hyper personalized memory framework for LLMs",
-    version="0.1.0"
+    version="0.1.0",
 )
 
 # Setup security
@@ -48,27 +48,25 @@ app.include_router(
     memory.router,
     prefix="/api/memory",
     tags=["memory"],
-    dependencies=[Security(security)]
+    dependencies=[Security(security)],
 )
 
 app.include_router(
     inference.router,
     prefix="/api/inference",
     tags=["inference"],
-    dependencies=[Security(security)]
+    dependencies=[Security(security)],
 )
 
 # Include authentication router
-app.include_router(
-    auth_router,
-    prefix="/api/auth",
-    tags=["auth"]
-)
+app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
+
 
 # Health check endpoint
 @app.get("/health", include_in_schema=False)
 async def health_check():
     return {"status": "ok", "timestamp": time.time()}
+
 
 # Root endpoint
 @app.get("/")
@@ -77,8 +75,9 @@ async def root():
         "name": "deep-recall API Gateway",
         "version": "0.1.0",
         "documentation": "/docs",
-        "health": "/health"
+        "health": "/health",
     }
+
 
 # Error handlers
 @app.exception_handler(HTTPException)
@@ -88,6 +87,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
         content={"detail": exc.detail},
     )
 
+
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
     logger.error(f"Unhandled exception: {exc}")
@@ -96,5 +96,6 @@ async def general_exception_handler(request: Request, exc: Exception):
         content={"detail": "Internal server error"},
     )
 
+
 if __name__ == "__main__":
-    uvicorn.run("api.main:app", host="0.0.0.0", port=8000, reload=True) 
+    uvicorn.run("api.main:app", host="0.0.0.0", port=8000, reload=True)

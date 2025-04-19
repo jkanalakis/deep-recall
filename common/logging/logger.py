@@ -23,7 +23,7 @@ def setup_logger(
 ):
     """
     Configure Loguru logger for the specified service
-    
+
     Args:
         service_name: Name of the service (inference, memory, orchestrator)
         log_level: Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
@@ -33,30 +33,35 @@ def setup_logger(
         rotation: Log rotation policy (size or time-based)
         retention: Log retention policy
         enqueue: Whether to enqueue logs (recommended for production)
-        
+
     Returns:
         Configured logger instance
     """
     # Remove default loguru handler
     logger.remove()
-    
+
     # Get log level from environment or parameter
     log_level = log_level or os.environ.get("LOG_LEVEL", "INFO").upper()
-    
+
     # Define log format if not specified
     if not log_format:
         if json_logs:
-            log_format = lambda record: json.dumps({
-                "timestamp": record["time"].isoformat(),
-                "level": record["level"].name,
-                "service": service_name,
-                "message": record["message"],
-                "function": record["function"],
-                "file": f"{record['file'].name}:{record['line']}",
-                "trace_id": record["extra"].get("trace_id", ""),
-                "span_id": record["extra"].get("span_id", ""),
-                **record["extra"],
-            }) + "\n"
+            log_format = (
+                lambda record: json.dumps(
+                    {
+                        "timestamp": record["time"].isoformat(),
+                        "level": record["level"].name,
+                        "service": service_name,
+                        "message": record["message"],
+                        "function": record["function"],
+                        "file": f"{record['file'].name}:{record['line']}",
+                        "trace_id": record["extra"].get("trace_id", ""),
+                        "span_id": record["extra"].get("span_id", ""),
+                        **record["extra"],
+                    }
+                )
+                + "\n"
+            )
         else:
             log_format = (
                 "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
@@ -67,7 +72,7 @@ def setup_logger(
                 "<blue>{name}</blue>:<blue>{function}</blue>:<blue>{line}</blue> | "
                 "<level>{message}</level>"
             )
-    
+
     # Add stderr handler
     logger.add(
         sys.stderr,
@@ -77,14 +82,14 @@ def setup_logger(
         backtrace=True,
         diagnose=True,
     )
-    
+
     # Add file handler if log file specified
     if log_file:
         # Ensure log directory exists
         log_dir = os.path.dirname(log_file)
         if log_dir:
             Path(log_dir).mkdir(parents=True, exist_ok=True)
-            
+
         logger.add(
             log_file,
             format=log_format,
@@ -95,14 +100,16 @@ def setup_logger(
             backtrace=True,
             diagnose=True,
         )
-    
+
     logger.info(f"Initialized logger for {service_name} at level {log_level}")
-    
+
     # Add correlation context for OpenTelemetry
     class CorrelationContextFilter:
         """Add trace and span info to logs"""
+
         def __call__(self, record):
             from opentelemetry import trace
+
             current_span = trace.get_current_span()
             if current_span:
                 ctx = current_span.get_span_context()
@@ -116,8 +123,8 @@ def setup_logger(
                 record["extra"]["trace_id"] = ""
                 record["extra"]["span_id"] = ""
             return True
-    
+
     # Add filter for correlation IDs
     logger.configure(patcher=lambda record: CorrelationContextFilter()(record))
-    
-    return logger 
+
+    return logger

@@ -25,59 +25,59 @@ def setup_tracing(
 ):
     """
     Configure OpenTelemetry tracing for the specified service
-    
+
     Args:
         service_name: Name of the service (inference, memory, orchestrator)
         otlp_endpoint: Optional OTLP endpoint for exporting traces
         debug: Whether to enable debug mode with console output
         resource_attributes: Additional resource attributes for spans
-        
+
     Returns:
         Configured tracer provider
     """
     # Get OTLP endpoint from environment if not provided
     otlp_endpoint = otlp_endpoint or os.environ.get("OTLP_ENDPOINT")
-    
+
     # Create resource with service information
     attributes = {
         "service.name": service_name,
         "service.namespace": "deep-recall",
         "deployment.environment": os.environ.get("DEPLOYMENT_ENV", "development"),
     }
-    
+
     # Add custom resource attributes if provided
     if resource_attributes:
         attributes.update(resource_attributes)
-    
+
     resource = Resource.create(attributes)
-    
+
     # Create tracer provider
     tracer_provider = TracerProvider(resource=resource)
-    
+
     # Add exporters
     if otlp_endpoint:
         # OTLP exporter for production
         otlp_exporter = OTLPSpanExporter(endpoint=otlp_endpoint, insecure=True)
         tracer_provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
-    
+
     if debug:
         # Console exporter for debugging
         console_exporter = ConsoleSpanExporter()
         tracer_provider.add_span_processor(BatchSpanProcessor(console_exporter))
-    
+
     # Set global tracer provider
     trace.set_tracer_provider(tracer_provider)
-    
+
     return tracer_provider
 
 
 def get_tracer(module_name):
     """
     Get a tracer for the specified module
-    
+
     Args:
         module_name: Name of the module
-        
+
     Returns:
         Tracer instance
     """
@@ -87,7 +87,7 @@ def get_tracer(module_name):
 def instrument_fastapi(app):
     """
     Instrument a FastAPI application
-    
+
     Args:
         app: FastAPI application instance
     """
@@ -97,7 +97,7 @@ def instrument_fastapi(app):
 def instrument_httpx_client(client):
     """
     Instrument an HTTPX client
-    
+
     Args:
         client: HTTPX client instance
     """
@@ -107,7 +107,7 @@ def instrument_httpx_client(client):
 def instrument_sqlalchemy(engine):
     """
     Instrument a SQLAlchemy engine
-    
+
     Args:
         engine: SQLAlchemy engine instance
     """
@@ -117,8 +117,8 @@ def instrument_sqlalchemy(engine):
 def instrument_redis(client):
     """
     Instrument a Redis client
-    
+
     Args:
         client: Redis client instance
     """
-    RedisInstrumentor.instrument(client=client) 
+    RedisInstrumentor.instrument(client=client)

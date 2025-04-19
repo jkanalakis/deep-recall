@@ -13,13 +13,13 @@ except ImportError:
     pass
 
 __all__ = [
-    'VectorDB',
-    'VectorDBFactory',
-    'FaissVectorDB',
+    "VectorDB",
+    "VectorDBFactory",
+    "FaissVectorDB",
 ]
 
 # Add other database classes to __all__ if available
 try:
-    __all__.append('QdrantVectorDB')
+    __all__.append("QdrantVectorDB")
 except NameError:
-    pass 
+    pass

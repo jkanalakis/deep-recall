@@ -55,38 +55,39 @@ class RequestContextMiddleware:
     """
     Middleware for capturing request context variables
     """
+
     def __init__(self, app):
         self.app = app
 
     async def __call__(self, scope, receive, send):
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
-            
+
         # Extract headers from scope
         headers = dict(scope.get("headers", []))
-        
+
         # Look for request ID in headers
         request_id = None
         if b"x-request-id" in headers:
             request_id = headers[b"x-request-id"].decode("utf-8")
-        
+
         # Look for correlation ID in headers
         correlation_id = None
         if b"x-correlation-id" in headers:
             correlation_id = headers[b"x-correlation-id"].decode("utf-8")
-        
+
         # Generate request ID if not provided
         if not request_id:
             request_id = str(uuid.uuid4())
-        
+
         # Generate correlation ID if not provided
         if not correlation_id:
             correlation_id = str(uuid.uuid4())
-            
+
         # Set context vars
         request_id_var.set(request_id)
         correlation_id_var.set(correlation_id)
-        
+
         # Process the request
         async def send_wrapper(message):
             if message["type"] == "http.response.start":
@@ -96,5 +97,5 @@ class RequestContextMiddleware:
                 headers.append((b"x-correlation-id", correlation_id.encode("utf-8")))
                 message["headers"] = headers
             await send(message)
-            
-        await self.app(scope, receive, send_wrapper) 
+
+        await self.app(scope, receive, send_wrapper)
