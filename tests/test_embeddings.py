@@ -69,7 +69,9 @@ class TestEmbeddingModels(unittest.TestCase):
 
             def to(self, device):
                 # Move tensors to device
-                return {k: v.to(device) if hasattr(v, 'to') else v for k, v in self.items()}
+                return {
+                    k: v.to(device) if hasattr(v, "to") else v for k, v in self.items()
+                }
 
         mock_tokenizer = MagicMock()
         mock_tokenizer.return_value = MockTokenizerOutput()
@@ -118,7 +120,7 @@ class TestEmbeddingModels(unittest.TestCase):
             embedding = model.embed_text(text)
 
             # Check embedding shape and type
-            self.assertEqual(embedding.shape, (768,))
+            self.assertEqual(embedding.shape, (1, 768))
             self.assertEqual(embedding.dtype, np.float32)
 
             # Test embedding multiple texts
@@ -135,7 +137,7 @@ class TestEmbeddingModels(unittest.TestCase):
                 return embedding
 
             embedding = asyncio.run(test_async())
-            self.assertEqual(embedding.shape, (768,))
+            self.assertEqual(embedding.shape, (1, 768))
 
             # Test get_embedding_dim
             self.assertEqual(model.get_embedding_dim(), 768)
@@ -146,17 +148,30 @@ class TestEmbeddingModels(unittest.TestCase):
         mock_model = MagicMock()
         mock_model.config.hidden_size = 768
 
+        # Create a dictionary-like object with a 'to' method
+        class MockTokenizerOutput(dict):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self["input_ids"] = torch.randint(0, 1000, (1, 10))
+                self["attention_mask"] = torch.ones(1, 10)
+
+            def to(self, device):
+                # Move tensors to device
+                return {k: v.to(device) if hasattr(v, "to") else v for k, v in self.items()}
+
         mock_tokenizer = MagicMock()
-        mock_tokenizer.return_value = {
-            "input_ids": torch.randint(0, 1000, (1, 10)),
-            "attention_mask": torch.ones(1, 10),
-        }
+        mock_tokenizer.return_value = MockTokenizerOutput()
 
         # Mock the model outputs
         class MockOutput:
             def __init__(self):
                 self.last_hidden_state = torch.randn(1, 10, 768)
                 self.attention_mask = torch.ones(1, 10)
+
+            def get(self, key, default):
+                if key == "attention_mask":
+                    return self.attention_mask
+                return default
 
         mock_output = MockOutput()
         mock_model.return_value = mock_output
@@ -176,7 +191,7 @@ class TestEmbeddingModels(unittest.TestCase):
                 embedding = model.embed_text(text)
 
                 # Check embedding shape and type
-                self.assertEqual(embedding.shape, (768,))
+                self.assertEqual(embedding.shape, (1, 768))
 
                 # Test async embedding
                 async def test_async():
@@ -184,7 +199,7 @@ class TestEmbeddingModels(unittest.TestCase):
                     return embedding
 
                 embedding = asyncio.run(test_async())
-                self.assertEqual(embedding.shape, (768,))
+                self.assertEqual(embedding.shape, (1, 768))
 
                 # Test get_embedding_dim
                 self.assertEqual(model.get_embedding_dim(), 768)
