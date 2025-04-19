@@ -413,7 +413,9 @@ class DeepRecallORM:
             Session object or None if not found
         """
         with self.get_db_session() as session:
-            result = session.query(UserSession).filter(UserSession.id == session_id).first()
+            result = (
+                session.query(UserSession).filter(UserSession.id == session_id).first()
+            )
             return result
 
     def get_user_sessions(self, user_id: str) -> List[UserSession]:
@@ -427,7 +429,9 @@ class DeepRecallORM:
             List of Session objects
         """
         with self.get_db_session() as session:
-            sessions = session.query(UserSession).filter(UserSession.user_id == user_id).all()
+            sessions = (
+                session.query(UserSession).filter(UserSession.user_id == user_id).all()
+            )
             return sessions
 
     def update_session(self, session_id: str, **kwargs) -> Optional[UserSession]:
@@ -442,7 +446,9 @@ class DeepRecallORM:
             Updated Session object or None if not found
         """
         with self.get_db_session() as session:
-            result = session.query(UserSession).filter(UserSession.id == session_id).first()
+            result = (
+                session.query(UserSession).filter(UserSession.id == session_id).first()
+            )
             if not result:
                 logger.warning(f"Session not found: {session_id}")
                 return None
@@ -467,7 +473,9 @@ class DeepRecallORM:
             True if deleted, False if not found
         """
         with self.get_db_session() as session:
-            result = session.query(UserSession).filter(UserSession.id == session_id).first()
+            result = (
+                session.query(UserSession).filter(UserSession.id == session_id).first()
+            )
             if not result:
                 logger.warning(f"Session not found: {session_id}")
                 return False
