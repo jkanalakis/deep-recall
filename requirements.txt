@@ -13,7 +13,7 @@ optimum>=1.8.6       # HuggingFace quantization toolkit
 # autoawq>=0.1.4       # Optional: for AWQ quantization
 
 # Vector database dependencies
-faiss-cpu>=1.7.2,<1.8.0  # Use faiss-gpu for GPU support
+faiss-cpu>=1.7.2  # Use faiss-gpu for GPU support
 qdrant-client>=1.3.1  # Qdrant vector database
 pymilvus>=2.2.6      # Milvus vector database
 chromadb>=0.4.13     # Chroma vector database
