@@ -59,11 +59,13 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          # Install SWIG first (required for faiss-cpu)
+          sudo apt-get update && sudo apt-get install -y swig
+          # Install faiss-cpu separately to ensure it's installed correctly
+          pip install faiss-cpu>=1.7.2,<1.8.0
+          # Install other dependencies
           pip install -r requirements.txt
           pip install pytest pytest-cov pytest-asyncio
-      
-      - name: Install SWIG for faiss-cpu
-        run: sudo apt-get update && sudo apt-get install -y swig
       
       - name: Run database setup
         run: |
@@ -127,11 +129,13 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          # Install SWIG first (required for faiss-cpu)
+          sudo apt-get update && sudo apt-get install -y swig
+          # Install faiss-cpu separately to ensure it's installed correctly
+          pip install faiss-cpu>=1.7.2,<1.8.0
+          # Install other dependencies
           pip install -r requirements.txt
           pip install pytest pytest-cov pytest-asyncio
-      
-      - name: Install SWIG for faiss-cpu
-        run: sudo apt-get update && sudo apt-get install -y swig
       
       - name: Run database setup
         run: |
