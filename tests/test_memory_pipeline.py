@@ -60,17 +60,17 @@ class TestMemoryPipeline(unittest.TestCase):
         self.db_path = os.path.join(self.temp_dir.name, "test_vector_db")
         self.metadata_path = os.path.join(self.temp_dir.name, "test_metadata.json")
 
-        # Initialize memory store with FAISS vector database
-        self.embedding_dim = 768
+        # Create mock embedding model first to get its dimension
+        self.embedding_model = MockEmbeddingModel(dimension=768)
+        self.embedding_dim = self.embedding_model.get_embedding_dim()
+
+        # Initialize memory store with FAISS vector database using the correct dimension
         self.memory_store = MemoryStore(
             embedding_dim=self.embedding_dim,
             db_type="faiss",
             db_path=self.db_path,
             metadata_path=self.metadata_path,
         )
-
-        # Create mock embedding model
-        self.embedding_model = MockEmbeddingModel(dimension=self.embedding_dim)
 
         # Initialize semantic search
         self.semantic_search = SemanticSearch(
