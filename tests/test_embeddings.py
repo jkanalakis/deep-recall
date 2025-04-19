@@ -157,7 +157,9 @@ class TestEmbeddingModels(unittest.TestCase):
 
             def to(self, device):
                 # Move tensors to device
-                return {k: v.to(device) if hasattr(v, "to") else v for k, v in self.items()}
+                return {
+                    k: v.to(device) if hasattr(v, "to") else v for k, v in self.items()
+                }
 
         mock_tokenizer = MagicMock()
         mock_tokenizer.return_value = MockTokenizerOutput()
