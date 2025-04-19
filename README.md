@@ -306,3 +306,83 @@ Distributed under the [Apache 2.0 License](LICENSE). Make it yours, and help bui
 
 - This project builds upon research from the field of personalized AI assistants
 - Special thanks to the open-source ML community for providing accessible models and tools
+
+## 🔒 Security Scanning
+
+Deep Recall includes a comprehensive security scanning system to ensure code quality and identify potential vulnerabilities:
+
+### Security Scanner Features
+
+- **Dependency Scanning**: Checks for known vulnerabilities in Python dependencies using Safety
+- **Code Security Analysis**: Identifies security issues in Python code using Bandit
+- **Secrets Detection**: Finds hardcoded secrets and sensitive information using detect-secrets
+- **Configurable Scanning**: Customize scan settings via `config/security_config.json`
+- **Detailed Reporting**: Generates both JSON and Markdown reports with findings
+
+### Running Security Scans
+
+```bash
+# Run all security scans
+python scripts/security_scan.py
+
+# Run specific scan types
+python scripts/security_scan.py --scan-type dependencies
+python scripts/security_scan.py --scan-type code
+python scripts/security_scan.py --scan-type secrets
+
+# Specify project root and config file
+python scripts/security_scan.py --project-root /path/to/project --config /path/to/config.json
+```
+
+### Security Configuration
+
+The security scanner can be configured via `config/security_config.json`:
+
+```json
+{
+    "scan_settings": {
+        "dependencies": {
+            "enabled": true,
+            "check_updates": true,
+            "ignore_patterns": ["test/*", "tests/*", "docs/*"]
+        },
+        "code": {
+            "enabled": true,
+            "ignore_patterns": ["test/*", "tests/*", "docs/*"],
+            "severity_levels": ["LOW", "MEDIUM", "HIGH"],
+            "confidence_levels": ["LOW", "MEDIUM", "HIGH"]
+        },
+        "secrets": {
+            "enabled": true,
+            "ignore_patterns": ["test/*", "tests/*", "docs/*"],
+            "detectors": ["AWSKeyDetector", "BasicAuthDetector", "PrivateKeyDetector"]
+        }
+    },
+    "reporting": {
+        "output_dir": "security_reports",
+        "formats": ["json", "markdown"],
+        "include_source": true,
+        "max_file_size": 1048576,
+        "retention_days": 30
+    }
+}
+```
+
+### CI Integration
+
+The security scanner can be integrated into your CI/CD pipeline to automatically check for vulnerabilities:
+
+```yaml
+# Example GitHub Actions workflow
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Run security scan
+        run: python scripts/security_scan.py
+```

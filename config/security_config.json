@@ -1,0 +1,95 @@
+{
+    "scan_settings": {
+        "dependencies": {
+            "enabled": true,
+            "check_updates": true,
+            "ignore_patterns": [
+                "test/*",
+                "tests/*",
+                "docs/*"
+            ]
+        },
+        "code": {
+            "enabled": true,
+            "ignore_patterns": [
+                "test/*",
+                "tests/*",
+                "docs/*",
+                "*.pyc",
+                "*.pyo",
+                "*.pyd",
+                "__pycache__",
+                "*.so"
+            ],
+            "severity_levels": ["LOW", "MEDIUM", "HIGH"],
+            "confidence_levels": ["LOW", "MEDIUM", "HIGH"]
+        },
+        "secrets": {
+            "enabled": true,
+            "ignore_patterns": [
+                "test/*",
+                "tests/*",
+                "docs/*",
+                "*.pyc",
+                "*.pyo",
+                "*.pyd",
+                "__pycache__",
+                "*.so"
+            ],
+            "detectors": [
+                "AWSKeyDetector",
+                "BasicAuthDetector",
+                "PrivateKeyDetector",
+                "JwtTokenDetector",
+                "SecretKeywordDetector"
+            ]
+        }
+    },
+    "reporting": {
+        "output_dir": "security_reports",
+        "formats": ["json", "markdown"],
+        "include_source": true,
+        "max_file_size": 1048576,
+        "retention_days": 30
+    },
+    "notifications": {
+        "enabled": false,
+        "channels": {
+            "email": {
+                "enabled": false,
+                "recipients": [],
+                "smtp_server": "",
+                "smtp_port": 587,
+                "smtp_username": "",
+                "smtp_password": ""
+            },
+            "slack": {
+                "enabled": false,
+                "webhook_url": "",
+                "channel": ""
+            }
+        },
+        "thresholds": {
+            "critical": {
+                "severity": "HIGH",
+                "confidence": "HIGH",
+                "count": 1
+            },
+            "warning": {
+                "severity": "MEDIUM",
+                "confidence": "MEDIUM",
+                "count": 5
+            }
+        }
+    },
+    "ci_integration": {
+        "enabled": false,
+        "fail_on": {
+            "critical": true,
+            "high": true,
+            "medium": false,
+            "low": false
+        },
+        "max_issues": 10
+    }
+} 

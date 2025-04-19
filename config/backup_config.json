@@ -1,0 +1,34 @@
+{
+  "backup_dir": "backups",
+  "postgresql": {
+    "db_name": "deep_recall",
+    "db_user": "postgres",
+    "db_host": "localhost",
+    "db_port": "5432",
+    "db_password": "changeme"
+  },
+  "vector_db": {
+    "qdrant": {
+      "path": "/var/lib/qdrant",
+      "service_name": "qdrant"
+    },
+    "milvus": {
+      "path": "/var/lib/milvus",
+      "service_name": "milvus"
+    },
+    "chroma": {
+      "path": "/var/lib/chroma",
+      "service_name": "chroma"
+    }
+  },
+  "retention": {
+    "days": 30,
+    "max_backups": 10
+  },
+  "schedule": {
+    "postgresql": "0 0 * * *",
+    "qdrant": "0 1 * * *",
+    "milvus": "0 2 * * *",
+    "chroma": "0 3 * * *"
+  }
+} 
