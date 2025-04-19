@@ -71,6 +71,8 @@ LOADED_MODELS: Dict[str, Any] = {}
 DEFAULT_MODEL: Optional[str] = None
 CONFIG: Optional[Dict[str, Any]] = None
 MODEL_CACHE_DIR: Optional[str] = None
+MODEL_CONFIG_PATH: str = os.path.join(os.path.dirname(__file__), "config", "models.yaml")
+MODEL_TYPE: str = "deepseek_r1"  # Default model type
 
 # Load configuration
 try:
@@ -200,50 +202,26 @@ async def load_model(model_name: str,
                     gpu_ids: Optional[List[int]] = None,
                     max_memory: Optional[Dict[int, str]] = None):
     """
-    Load a model by name from config with GPU optimizations
+    Load a model with the specified configuration
     """
-    # If model already loaded and no GPU config changes, return it
-    if model_name in LOADED_MODELS:
-        logger.info(f"Model {model_name} already loaded")
-        return LOADED_MODELS[model_name]
-    
-    if not CONFIG or "models" not in CONFIG:
-        raise ValueError("Configuration not loaded or missing models section")
-    
-    if model_name not in CONFIG["models"]:
-        raise ValueError(f"Model {model_name} not found in configuration")
-    
-    logger.info(f"Loading model {model_name}...")
-    
-    # Get model configuration
-    model_config = CONFIG["models"][model_name]
-    
-    # Determine quantization and parallelism settings
-    quant_mode = quantization or model_config.get("quantization", "none")
-    parallel = parallel_mode or model_config.get("parallel_mode", "none")
-    
-    # Check if GPU preferences specified in config
-    if gpu_ids is None and "gpu_ids" in model_config:
-        gpu_ids = model_config["gpu_ids"]
-    
-    # Check if max memory specified in config
-    if max_memory is None and "max_memory" in model_config:
-        max_memory = model_config["max_memory"]
-    
     try:
-        if "deepseek" in model_name.lower():
-            # Import the DeepSeek model integration
-            from models.deepseek_r1_integration import DeepSeekR1Model
-            model_instance = DeepSeekR1Model(
-                model_path=MODEL_CACHE_DIR,
-                quantization=quant_mode,
-                parallel_mode=parallel,
+        if model_name == "deepseek_r1":
+            # Import the model module
+            from models.deepseek_r1 import DeepSeekR1
+            
+            # Create model instance
+            model_instance = DeepSeekR1(
+                quantization=quantization,
+                parallel_mode=parallel_mode,
                 available_gpus=gpu_ids,
                 max_memory_per_gpu=max_memory
             )
+            
+            # Update global model state
             LOADED_MODELS[model_name] = model_instance
             
             # Set as default if no default exists or if this is deepseek_r1
+            global DEFAULT_MODEL
             if not DEFAULT_MODEL or model_name == "deepseek_r1":
                 DEFAULT_MODEL = model_name
                 
@@ -277,8 +255,6 @@ async def startup_event():
     # Log startup information
     logger.info(f"Starting {SERVICE_NAME} with OpenTelemetry tracing")
     
-    global CONFIG, DEFAULT_MODEL
-    
     if not CONFIG or "models" not in CONFIG:
         logger.warning("No configuration found or missing models section")
         # Attempt to load the default model anyway
@@ -292,6 +268,7 @@ async def startup_event():
     if MODEL_TYPE in CONFIG["models"]:
         try:
             await load_model(MODEL_TYPE)
+            global DEFAULT_MODEL
             DEFAULT_MODEL = MODEL_TYPE
         except Exception as e:
             logger.error(f"Failed to load default model {MODEL_TYPE}: {str(e)}")
@@ -312,8 +289,6 @@ async def health_check():
     """
     Health check endpoint
     """
-    global LOADED_MODELS, DEFAULT_MODEL
-    
     if not LOADED_MODELS:
         return {
             "status": "unhealthy", 
@@ -337,30 +312,27 @@ async def health_check():
 @app.get("/v1/models", response_model=ModelsResponse)
 async def list_models():
     """
-    List available models
+    List all available models and their status
     """
-    global CONFIG, LOADED_MODELS, DEFAULT_MODEL
-    
-    if not CONFIG or "models" not in CONFIG:
-        raise HTTPException(status_code=500, detail="Configuration not loaded or missing models section")
-    
-    models = []
-    for model_name, model_config in CONFIG["models"].items():
-        models.append(
-            ModelInfo(
-                model_id=model_config.get("model_id", model_name),
-                revision=model_config.get("revision"),
-                quantization=model_config.get("quantization"),
-                max_sequence_length=model_config.get("max_sequence_length", 4096),
+    try:
+        models = []
+        for model_name, config in CONFIG.get("models", {}).items():
+            model_info = ModelInfo(
+                model_id=model_name,
+                revision=config.get("revision"),
+                quantization=config.get("quantization"),
+                max_sequence_length=config.get("max_sequence_length", 2048),
                 loaded=model_name in LOADED_MODELS,
-                default=(model_name == DEFAULT_MODEL)
+                default=model_name == DEFAULT_MODEL
             )
+            models.append(model_info)
+            
+        return ModelsResponse(
+            models=models,
+            default_model=DEFAULT_MODEL or ""
         )
-    
-    return {
-        "models": models,
-        "default_model": DEFAULT_MODEL or "none"
-    }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/v1/gpu_status", response_model=GPUStatusResponse)
 async def get_gpu_status():
@@ -415,71 +387,76 @@ async def get_gpu_status():
 @app.post("/v1/models/{model_name}/load", status_code=status.HTTP_202_ACCEPTED)
 async def load_model_endpoint(model_name: str, request: ModelLoadRequest, background_tasks: BackgroundTasks):
     """
-    Load a model by name with specified configuration
+    Load a model with the specified configuration
     """
-    # Validate model exists in config
-    if not CONFIG or "models" not in CONFIG or model_name not in CONFIG["models"]:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Model {model_name} not found in configuration"
+    try:
+        if model_name in LOADED_MODELS:
+            return {"status": "success", "message": f"Model {model_name} is already loaded"}
+            
+        background_tasks.add_task(
+            load_model,
+            model_name=model_name,
+            quantization=request.quantization,
+            parallel_mode=request.parallel_mode,
+            gpu_ids=request.gpu_ids,
+            max_memory=request.max_memory
         )
-    
-    # Start loading in background
-    background_tasks.add_task(
-        load_model,
-        model_name,
-        request.quantization,
-        request.parallel_mode,
-        request.gpu_ids,
-        request.max_memory
-    )
-    
-    return {"detail": f"Loading model {model_name}"}
+        
+        return {"status": "success", "message": f"Loading model {model_name}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/v1/clear_gpu_memory")
 async def clear_gpu_memory_endpoint():
     """
-    Clear GPU memory by unloading all models
+    Clear GPU memory and unload all models
     """
-    # Clear all loaded models
-    LOADED_MODELS.clear()
-    return {"detail": "GPU memory cleared"}
+    try:
+        global DEFAULT_MODEL
+        clear_gpu_memory()
+        LOADED_MODELS.clear()
+        DEFAULT_MODEL = None
+        return {"status": "success", "message": "GPU memory cleared and models unloaded"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/v1/models/{model_name}/offload")
 async def offload_model_to_cpu(model_name: str):
     """
-    Offload a model from GPU to CPU
+    Offload a model to CPU memory
     """
-    if model_name not in LOADED_MODELS:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Model {model_name} not found"
-        )
-    
-    # Offload model
-    model = LOADED_MODELS[model_name]
-    if hasattr(model, "to"):
+    try:
+        if model_name not in LOADED_MODELS:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Model {model_name} not loaded"
+            )
+            
+        model = LOADED_MODELS[model_name]
         model.to("cpu")
-    
-    return {"detail": f"Model {model_name} offloaded to CPU"}
+        
+        return {"status": "success", "message": f"Model {model_name} offloaded to CPU"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/v1/models/{model_name}/reload")
 async def reload_model_to_gpu(model_name: str):
     """
-    Reload a model from CPU to GPU
+    Reload a model back to GPU memory
     """
-    if model_name not in LOADED_MODELS:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Model {model_name} not found"
-        )
-    
-    # Reload model to GPU
-    model = LOADED_MODELS[model_name]
-    if hasattr(model, "to"):
+    try:
+        if model_name not in LOADED_MODELS:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Model {model_name} not loaded"
+            )
+            
+        model = LOADED_MODELS[model_name]
         model.to("cuda")
-    
-    return {"detail": f"Model {model_name} reloaded to GPU"}
+        
+        return {"status": "success", "message": f"Model {model_name} reloaded to GPU"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 async def generate_stream_response(model, request: InferenceRequest) -> AsyncIterator[str]:
     """
