@@ -3,10 +3,11 @@ Base classes for vector database interfaces.
 This module defines the abstract base classes that all vector database implementations must follow.
 """
 
-from abc import ABC, abstractmethod
-import numpy as np
 import os
-from typing import List, Dict, Optional, Any, Tuple, Union
+from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+import numpy as np
 
 
 class VectorDB(ABC):
@@ -137,10 +138,10 @@ class VectorDBFactory:
         Raises:
             ValueError: If the specified database type is not supported
         """
-        from memory.vector_db.faiss_db import FaissVectorDB
-        from memory.vector_db.qdrant_db import QdrantVectorDB
-        from memory.vector_db.milvus_db import MilvusVectorDB
         from memory.vector_db.chroma_db import ChromaVectorDB
+        from memory.vector_db.faiss_db import FaissVectorDB
+        from memory.vector_db.milvus_db import MilvusVectorDB
+        from memory.vector_db.qdrant_db import QdrantVectorDB
 
         db_type = db_type.lower()
 

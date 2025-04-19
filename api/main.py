@@ -1,21 +1,22 @@
 #!/usr/bin/env python3
 # api/main.py
 
-import time
-from typing import Dict, List, Optional, Any
-from fastapi import FastAPI, Depends, HTTPException, Request, status, Security
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-import uvicorn
-from loguru import logger
 import json
 import os
+import time
+from typing import Any, Dict, List, Optional
+
+import uvicorn
+from fastapi import Depends, FastAPI, HTTPException, Request, Security, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from loguru import logger
 from pydantic import BaseModel, Field
 
-# Import custom modules
-from api.endpoints import memory, inference
 from api.auth.routes import router as auth_router
+# Import custom modules
+from api.endpoints import inference, memory
 from api.middleware.auth import authenticate_request
 from api.middleware.logging import LoggingMiddleware
 from api.middleware.prometheus import PrometheusMiddleware

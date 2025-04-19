@@ -1,9 +1,10 @@
-import unittest
-import numpy as np
+import json
 import os
 import tempfile
-import json
+import unittest
 from datetime import datetime, timedelta
+
+import numpy as np
 
 from memory.memory_store import MemoryStore
 

@@ -2,10 +2,11 @@
 Utility functions and examples for working with vector databases.
 """
 
-import numpy as np
 import os
 import time
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
+
+import numpy as np
 
 from memory.vector_db import VectorDBFactory
 from memory.vector_db.base import VectorDB

@@ -8,8 +8,9 @@ This module handles context aggregation and formatting for LLM inference.
 It retrieves relevant memories and integrates them into the LLM prompt.
 """
 
-from typing import Dict, List, Optional, Any
 import json
+from typing import Any, Dict, List, Optional
+
 from loguru import logger
 
 

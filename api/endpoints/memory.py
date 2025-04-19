@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 # api/endpoints/memory.py
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, Body, status
-from typing import Dict, List, Optional, Any
-from pydantic import BaseModel, Field
 import time
+from typing import Any, Dict, List, Optional
+
+from fastapi import (APIRouter, Body, Depends, HTTPException, Path, Query,
+                     status)
 from loguru import logger
+from pydantic import BaseModel, Field
 
 # Import auth middleware for dependency injection
-from api.middleware.auth import authenticate_request, TokenData, check_scope
+from api.middleware.auth import TokenData, authenticate_request, check_scope
 
 
 # Memory models for request/response

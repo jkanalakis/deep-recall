@@ -1,16 +1,17 @@
-import unittest
-import numpy as np
-from typing import Dict, List, Any
+import json
 import os
 import tempfile
-import json
+import unittest
 from datetime import datetime
+from typing import Any, Dict, List
 
-# Import the components to test
-from memory.semantic_search import SemanticSearch
+import numpy as np
+
+from memory.embeddings import EmbeddingModelFactory
 from memory.memory_retriever import MemoryRetriever
 from memory.memory_store import MemoryStore
-from memory.embeddings import EmbeddingModelFactory
+# Import the components to test
+from memory.semantic_search import SemanticSearch
 
 
 class MockEmbeddingModel:

@@ -1,38 +1,32 @@
-from fastapi import FastAPI, HTTPException, Depends, Request, BackgroundTasks, status
+import asyncio
+import importlib
+import json
+import os
+import sys
+import time
+from typing import Any, AsyncIterator, Dict, List, Optional, Union
+from uuid import uuid4
+
+import torch
+import yaml
+from fastapi import (BackgroundTasks, Depends, FastAPI, HTTPException, Request,
+                     status)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, validator
-import os
-import time
-import torch
-import yaml
-import json
-import sys
-import importlib
-import asyncio
-from typing import Dict, Any, Optional, List, Union, AsyncIterator
-from uuid import uuid4
-
-# Import internal modules
-from inference_service.memory_integration import (
-    get_context_for_prompt,
-    get_mock_context,
-)
-from models.gpu_optimizations import (
-    QuantizationMode,
-    ParallelMode,
-    optimize_cuda_memory,
-    clear_gpu_memory,
-)
-from inference_service.metrics import setup_metrics, get_metrics_exporter
 
 # Import common logging
-from common.logging import setup_logger, setup_tracing, get_tracer
-from common.logging.middleware import RequestLoggingMiddleware
+from common.logging import get_tracer, setup_logger, setup_tracing
 from common.logging.context import RequestContextMiddleware
-
+from common.logging.middleware import RequestLoggingMiddleware
 # Import OpenTelemetry instrumentation
 from common.logging.tracing import instrument_fastapi, instrument_httpx_client
+# Import internal modules
+from inference_service.memory_integration import (get_context_for_prompt,
+                                                  get_mock_context)
+from inference_service.metrics import get_metrics_exporter, setup_metrics
+from models.gpu_optimizations import (ParallelMode, QuantizationMode,
+                                      clear_gpu_memory, optimize_cuda_memory)
 
 # Initialize service name
 SERVICE_NAME = "inference-service"
@@ -289,7 +283,8 @@ async def startup_event():
     Initialize models and instrumentation on startup
     """
     # Import OpenTelemetry instrumentation
-    from common.logging.tracing import instrument_fastapi, instrument_httpx_client
+    from common.logging.tracing import (instrument_fastapi,
+                                        instrument_httpx_client)
 
     # Instrument FastAPI application
     instrument_fastapi(app)

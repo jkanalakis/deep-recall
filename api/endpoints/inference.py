@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
 # api/endpoints/inference.py
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, Body, status
-from fastapi.responses import JSONResponse
-from typing import Dict, List, Optional, Any, Union
-from pydantic import BaseModel, Field
-import time
-import json
-from loguru import logger
 import asyncio  # For the sleep in our demo
+import json
+import time
+from typing import Any, Dict, List, Optional, Union
+
+from fastapi import (APIRouter, Body, Depends, HTTPException, Path, Query,
+                     status)
+from fastapi.responses import JSONResponse
+from loguru import logger
+from pydantic import BaseModel, Field
 
 # Import auth middleware for dependency injection
-from api.middleware.auth import authenticate_request, TokenData
+from api.middleware.auth import TokenData, authenticate_request
 
 
 # Import memory client

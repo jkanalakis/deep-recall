@@ -4,10 +4,11 @@ Provides configurable semantic similarity search functionality with
 various similarity metrics, pagination, and filtering options.
 """
 
-import numpy as np
-from typing import Dict, List, Optional, Any, Tuple, Union
-from datetime import datetime
 import heapq
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+import numpy as np
 
 from memory.embeddings import EmbeddingModelFactory
 

@@ -9,9 +9,11 @@ coordinating between memory retrieval and inference services, and
 managing the flow of data through the system.
 """
 
-from typing import Dict, List, Optional, Any, Callable
 import asyncio
+from typing import Any, Callable, Dict, List, Optional
+
 from loguru import logger
+
 from orchestrator.aggregator import ContextAggregator
 
 

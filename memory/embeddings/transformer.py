@@ -2,12 +2,13 @@
 Embedding model implementation using Hugging Face transformers.
 """
 
-import numpy as np
-import torch
-from transformers import AutoTokenizer, AutoModel
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from typing import List, Union, Dict, Any, Optional
+from typing import Any, Dict, List, Optional, Union
+
+import numpy as np
+import torch
+from transformers import AutoModel, AutoTokenizer
 
 from memory.embeddings.base import EmbeddingModel
 

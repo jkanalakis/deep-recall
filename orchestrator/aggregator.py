@@ -12,12 +12,13 @@ comprehensive, contextually enriched prompts for LLM inference by:
 4. Creating structured prompts optimized for LLM input
 """
 
-from typing import Dict, List, Optional, Any, Tuple
+import asyncio
 import json
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
+
 from loguru import logger
 from transformers import AutoTokenizer
-import asyncio
-from datetime import datetime
 
 
 class ContextAggregator:

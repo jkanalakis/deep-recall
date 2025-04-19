@@ -7,31 +7,21 @@ SQLAlchemy-based database utilities for the Deep Recall framework.
 This module provides CRUD operations for the Deep Recall database using SQLAlchemy ORM.
 """
 
-import os
 import json
 import logging
+import os
 import uuid
-from typing import Dict, List, Optional, Any, Union, Tuple
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
-from sqlalchemy import (
-    create_engine,
-    Column,
-    String,
-    Integer,
-    Float,
-    Boolean,
-    DateTime,
-    ForeignKey,
-    Text,
-    JSON,
-)
-from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship, Session
-from sqlalchemy.sql import func
 from sentence_transformers import SentenceTransformer
+from sqlalchemy import (JSON, Boolean, Column, DateTime, Float, ForeignKey,
+                        Integer, String, Text, create_engine)
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import Session, relationship, sessionmaker
+from sqlalchemy.sql import func
 
 # Configure logging
 logging.basicConfig(

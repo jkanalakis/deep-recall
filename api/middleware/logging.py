@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 # api/middleware/logging.py
 
-import time
 import json
+import os
+import time
 import uuid
+
 from fastapi import Request, Response
+from loguru import logger
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
-from loguru import logger
-import os
 
 # Configure Loguru
 log_level = os.getenv("LOG_LEVEL", "INFO")

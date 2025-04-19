@@ -1,12 +1,13 @@
-import unittest
-import numpy as np
 import asyncio
-from unittest.mock import patch, MagicMock
+import unittest
+from unittest.mock import MagicMock, patch
+
+import numpy as np
 
 from memory.embeddings import EmbeddingModelFactory
 from memory.embeddings.base import EmbeddingModel
-from memory.embeddings.transformer import TransformerEmbeddingModel
 from memory.embeddings.sentence_transformer import SentenceTransformerModel
+from memory.embeddings.transformer import TransformerEmbeddingModel
 
 
 class MockSentenceTransformer:

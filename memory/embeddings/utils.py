@@ -2,15 +2,13 @@
 Utility functions and examples for working with embedding models.
 """
 
-import numpy as np
 import asyncio
-from typing import List, Dict, Any, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
-from memory.embeddings import (
-    EmbeddingModelFactory,
-    TransformerEmbeddingModel,
-    SentenceTransformerModel,
-)
+import numpy as np
+
+from memory.embeddings import (EmbeddingModelFactory, SentenceTransformerModel,
+                               TransformerEmbeddingModel)
 
 
 def compute_cosine_similarity(vec1: np.ndarray, vec2: np.ndarray) -> float:

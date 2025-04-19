@@ -5,15 +5,16 @@ This module implements dynamic batching to improve GPU utilization
 and throughput for LLM inference requests.
 """
 
-import time
 import asyncio
-import threading
-from typing import Dict, List, Any, Optional, Callable, Tuple, Awaitable
 import logging
 import os
+import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from queue import PriorityQueue, Empty
+from queue import Empty, PriorityQueue
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple
+
 import torch
 
 logger = logging.getLogger(__name__)
