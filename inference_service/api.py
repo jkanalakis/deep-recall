@@ -66,17 +66,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize global variables
-MODEL = None
-TOKENIZER = None
-MODEL_TYPE = os.environ.get("MODEL_TYPE", "deepseek_r1")
-MODEL_CACHE_DIR = os.environ.get("MODEL_CACHE_DIR", "/app/model_cache")
-MODEL_CONFIG_PATH = os.environ.get("MODEL_CONFIG_PATH", "/app/config/model_config.yaml")
-LOADED_MODELS = {}  # Dictionary to store multiple loaded models
-DEFAULT_MODEL = None  # Default model to use
+# Global variables for model management
+LOADED_MODELS: Dict[str, Any] = {}
+DEFAULT_MODEL: Optional[str] = None
+CONFIG: Optional[Dict[str, Any]] = None
+MODEL_CACHE_DIR: Optional[str] = None
 
 # Load configuration
-CONFIG = {}
 try:
     if os.path.exists(MODEL_CONFIG_PATH):
         with open(MODEL_CONFIG_PATH, "r") as f:
@@ -184,8 +180,6 @@ def get_model_by_name(model_name: Optional[str] = None):
     """
     Get the specified model or the default model
     """
-    global LOADED_MODELS, DEFAULT_MODEL
-    
     if model_name and model_name in LOADED_MODELS:
         return LOADED_MODELS[model_name]
     
@@ -208,8 +202,6 @@ async def load_model(model_name: str,
     """
     Load a model by name from config with GPU optimizations
     """
-    global LOADED_MODELS, CONFIG, MODEL_CACHE_DIR, DEFAULT_MODEL
-    
     # If model already loaded and no GPU config changes, return it
     if model_name in LOADED_MODELS:
         logger.info(f"Model {model_name} already loaded")
@@ -423,118 +415,71 @@ async def get_gpu_status():
 @app.post("/v1/models/{model_name}/load", status_code=status.HTTP_202_ACCEPTED)
 async def load_model_endpoint(model_name: str, request: ModelLoadRequest, background_tasks: BackgroundTasks):
     """
-    Load a model dynamically with GPU optimizations
+    Load a model by name with specified configuration
     """
-    global CONFIG
+    # Validate model exists in config
+    if not CONFIG or "models" not in CONFIG or model_name not in CONFIG["models"]:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Model {model_name} not found in configuration"
+        )
     
-    if not CONFIG or "models" not in CONFIG:
-        raise HTTPException(status_code=500, detail="Configuration not loaded or missing models section")
-    
-    if model_name not in CONFIG["models"]:
-        raise HTTPException(status_code=404, detail=f"Model {model_name} not found in configuration")
-    
-    if model_name in LOADED_MODELS:
-        return {"message": f"Model {model_name} already loaded"}
-    
-    # Load model in background
+    # Start loading in background
     background_tasks.add_task(
-        load_model, 
-        model_name=model_name,
-        quantization=request.quantization,
-        parallel_mode=request.parallel_mode,
-        gpu_ids=request.gpu_ids,
-        max_memory=request.max_memory
+        load_model,
+        model_name,
+        request.quantization,
+        request.parallel_mode,
+        request.gpu_ids,
+        request.max_memory
     )
     
-    return {"message": f"Model {model_name} loading started with GPU optimizations"}
+    return {"detail": f"Loading model {model_name}"}
 
 @app.post("/v1/clear_gpu_memory")
 async def clear_gpu_memory_endpoint():
     """
-    Manually clear GPU memory
+    Clear GPU memory by unloading all models
     """
-    if not torch.cuda.is_available():
-        return {"message": "No GPU available"}
-    
-    # Get memory before clearing
-    mem_before = torch.cuda.memory_allocated() / (1024**3)  # GB
-    
-    # Clear memory
-    clear_gpu_memory()
-    
-    # Get memory after clearing
-    mem_after = torch.cuda.memory_allocated() / (1024**3)  # GB
-    
-    return {
-        "message": "GPU memory cleared",
-        "memory_before_gb": round(mem_before, 2),
-        "memory_after_gb": round(mem_after, 2),
-        "freed_gb": round(mem_before - mem_after, 2)
-    }
+    # Clear all loaded models
+    LOADED_MODELS.clear()
+    return {"detail": "GPU memory cleared"}
 
 @app.post("/v1/models/{model_name}/offload")
 async def offload_model_to_cpu(model_name: str):
     """
-    Offload a model from GPU to CPU to save memory
+    Offload a model from GPU to CPU
     """
-    global LOADED_MODELS
-    
     if model_name not in LOADED_MODELS:
-        raise HTTPException(status_code=404, detail=f"Model {model_name} not loaded")
-    
-    model = LOADED_MODELS[model_name]
-    
-    # Check if model has offload method
-    if not hasattr(model, "offload_to_cpu"):
-        raise HTTPException(status_code=400, detail=f"Model {model_name} does not support offloading")
-    
-    # Check if model is already on CPU
-    if hasattr(model, "is_on_gpu") and not model.is_on_gpu():
-        return {"message": f"Model {model_name} is already on CPU"}
-    
-    # Get memory before offloading
-    mem_before = torch.cuda.memory_allocated() / (1024**3) if torch.cuda.is_available() else 0
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Model {model_name} not found"
+        )
     
     # Offload model
-    model.offload_to_cpu()
+    model = LOADED_MODELS[model_name]
+    if hasattr(model, "to"):
+        model.to("cpu")
     
-    # Get memory after offloading
-    mem_after = torch.cuda.memory_allocated() / (1024**3) if torch.cuda.is_available() else 0
-    
-    return {
-        "message": f"Model {model_name} offloaded to CPU",
-        "memory_before_gb": round(mem_before, 2),
-        "memory_after_gb": round(mem_after, 2),
-        "freed_gb": round(mem_before - mem_after, 2)
-    }
+    return {"detail": f"Model {model_name} offloaded to CPU"}
 
 @app.post("/v1/models/{model_name}/reload")
 async def reload_model_to_gpu(model_name: str):
     """
-    Reload a model from CPU back to GPU
+    Reload a model from CPU to GPU
     """
-    global LOADED_MODELS
-    
     if model_name not in LOADED_MODELS:
-        raise HTTPException(status_code=404, detail=f"Model {model_name} not loaded")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Model {model_name} not found"
+        )
     
+    # Reload model to GPU
     model = LOADED_MODELS[model_name]
+    if hasattr(model, "to"):
+        model.to("cuda")
     
-    # Check if model has reload method
-    if not hasattr(model, "reload_to_gpu"):
-        raise HTTPException(status_code=400, detail=f"Model {model_name} does not support reloading")
-    
-    # Check if model is already on GPU
-    if hasattr(model, "is_on_gpu") and model.is_on_gpu():
-        return {"message": f"Model {model_name} is already on GPU"}
-    
-    # Reload model
-    model.reload_to_gpu()
-    
-    return {
-        "message": f"Model {model_name} reloaded to GPU",
-        "current_memory_gb": round(torch.cuda.memory_allocated() / (1024**3), 2) if torch.cuda.is_available() else 0
-    }
+    return {"detail": f"Model {model_name} reloaded to GPU"}
 
 async def generate_stream_response(model, request: InferenceRequest) -> AsyncIterator[str]:
     """
@@ -647,275 +592,115 @@ async def generate_stream_response(model, request: InferenceRequest) -> AsyncIte
 @app.post("/v1/completions", response_model=InferenceResponse)
 async def generate_completion(request: InferenceRequest):
     """
-    Generate a completion for the given prompt
+    Generate a completion for a single prompt
     """
-    # Start a span for this endpoint
-    with tracer.start_as_current_span("generate_completion") as span:
-        # Add attributes to the span
-        span.set_attribute("model", request.model)
-        span.set_attribute("max_tokens", request.max_tokens)
-        span.set_attribute("temperature", request.temperature)
-        span.set_attribute("prompt_length", len(request.prompt))
-        
-        global LOADED_MODELS, DEFAULT_MODEL
-        
-        if not LOADED_MODELS:
-            logger.error("No models loaded")
-            span.set_attribute("error", "no_models_loaded")
-            span.record_exception(HTTPException(status_code=503, detail="No models loaded"))
-            raise HTTPException(status_code=503, detail="No models loaded")
-        
-        # Get the appropriate model
-        model_name = request.model or DEFAULT_MODEL
-        span.set_attribute("model_name", model_name)
-        
-        model = get_model_by_name(model_name)
-        
-        if not model:
-            logger.error(f"Model not found: {model_name}")
-            span.set_attribute("error", "model_not_found")
-            span.record_exception(HTTPException(status_code=404, detail=f"Model not found: {model_name}"))
-            raise HTTPException(status_code=404, detail=f"Model not found: {model_name}")
-        
-        start_time = time.time()
-        
-        try:
-            # Track request in metrics
-            metrics_exporter.track_request_start(model.model_id, "/v1/completions")
-            metrics_exporter.track_request_processing()
-            
-            # Format the context if provided
-            context = []
-            if request.context:
-                context = request.context
-                span.set_attribute("context_length", len(context))
-            
-            # Create a child span for model inference
-            with tracer.start_as_current_span("model_inference") as inference_span:
-                # Generate the completion
-                result = await model.generate(
-                    prompt=request.prompt,
-                    max_tokens=request.max_tokens,
-                    temperature=request.temperature,
-                    top_p=request.top_p,
-                    frequency_penalty=request.frequency_penalty,
-                    presence_penalty=request.presence_penalty,
-                    stop_sequences=request.stop_sequences,
-                    context=context
-                )
-                
-                # Record token usage in span
-                inference_span.set_attribute("prompt_tokens", result["usage"]["prompt_tokens"])
-                inference_span.set_attribute("completion_tokens", result["usage"]["completion_tokens"])
-                inference_span.set_attribute("total_tokens", result["usage"]["prompt_tokens"] + result["usage"]["completion_tokens"])
-            
-            # Calculate latency
-            latency_ms = (time.time() - start_time) * 1000
-            span.set_attribute("latency_ms", latency_ms)
-            
-            # Track metrics for the completed request
-            metrics_exporter.track_request_complete(
-                latency_ms=latency_ms,
-                prompt_tokens=result["usage"]["prompt_tokens"],
-                completion_tokens=result["usage"]["completion_tokens"]
-            )
-            
-            # Calculate memory usage for metrics
-            if torch.cuda.is_available():
-                gpu_memory_bytes = torch.cuda.memory_allocated()
-                per_request_mb = gpu_memory_bytes / (1024 * 1024) / max(1, metrics_exporter.active_requests)
-                metrics_exporter.update_memory_usage(gpu_memory_bytes, per_request_mb)
-                
-                # Add GPU metrics to span
-                span.set_attribute("gpu_memory_bytes", gpu_memory_bytes)
-                span.set_attribute("gpu_memory_mb_per_request", per_request_mb)
-            
-            # Generate response
-            response_data = {
-                "text": result["text"],
-                "usage": result["usage"],
-                "model": model.model_id,
-                "inference_time": latency_ms / 1000,  # Convert to seconds
-                "request_id": str(uuid4())
-            }
-            
-            # Add result length to span
-            span.set_attribute("result_length", len(result["text"]))
-            
-            logger.info(f"Generated completion successfully: {latency_ms:.2f}ms, "
-                       f"{result['usage']['prompt_tokens']} prompt tokens, "
-                       f"{result['usage']['completion_tokens']} completion tokens")
-            
-            return response_data
-            
-        except Exception as e:
-            # Record exception in span
-            span.record_exception(e)
-            span.set_attribute("error", True)
-            span.set_attribute("error_type", type(e).__name__)
-            
-            # Track error in metrics
-            metrics_exporter.track_error(error_type=type(e).__name__)
-            logger.exception(f"Error generating completion: {str(e)}")
-            raise HTTPException(status_code=500, detail=str(e))
+    # Get model
+    model = get_model_by_name(request.model)
+    if not model:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No model available"
+        )
+    
+    # Generate completion
+    start_time = time.time()
+    response = await generate_stream_response(model, request)
+    end_time = time.time()
+    
+    return InferenceResponse(
+        text=response,
+        usage={"prompt_tokens": 0, "completion_tokens": 0},  # TODO: Implement token counting
+        model=request.model or DEFAULT_MODEL or "unknown",
+        inference_time=end_time - start_time
+    )
 
 @app.post("/v1/batch_completions", response_model=BatchInferenceResponse)
 async def batch_generate_completions(request: BatchInferenceRequest):
     """
-    Generate multiple completions in batch
+    Generate completions for multiple prompts
     """
-    model_name = request.model
-    model = get_model_by_name(model_name)
-    
+    # Get model
+    model = get_model_by_name(request.model)
     if not model:
-        if not model_name:
-            raise HTTPException(status_code=503, detail="No models loaded")
-        else:
-            # Try to load the requested model
-            try:
-                model = await load_model(model_name)
-            except Exception as e:
-                raise HTTPException(status_code=503, detail=f"Model {model_name} could not be loaded: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No model available"
+            )
     
+    # Generate completions
     start_time = time.time()
     responses = []
-    
-    # Process each prompt
     for prompt in request.prompts:
-        prompt_start_time = time.time()
-        
-        try:
-            # Generate the text
-            generated_text = model.generate_reply(
-                prompt,
-                max_new_tokens=request.max_tokens,
-                temperature=request.temperature,
-                top_p=request.top_p
-            )
-            
-            # Calculate token usage (rough estimation)
-            prompt_tokens = len(prompt.split())
-            completion_tokens = len(generated_text.split())
-            
-            prompt_inference_time = time.time() - prompt_start_time
-            
-            responses.append(InferenceResponse(
-                text=generated_text,
-                usage={
-                    "prompt_tokens": prompt_tokens,
-                    "completion_tokens": completion_tokens,
-                    "total_tokens": prompt_tokens + completion_tokens
-                },
-                model=model.model_id if hasattr(model, "model_id") else MODEL_TYPE,
-                inference_time=prompt_inference_time,
-                request_id=str(uuid4())
-            ))
-            
-        except Exception as e:
-            logger.error(f"Batch inference error for prompt: {prompt[:50]}...: {str(e)}")
-            # Continue with the next prompt rather than failing the entire batch
-            responses.append(InferenceResponse(
-                text=f"Error: {str(e)}",
-                usage={"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
-                model=model.model_id if hasattr(model, "model_id") else MODEL_TYPE,
-                inference_time=time.time() - prompt_start_time,
-                request_id=str(uuid4())
-            ))
-    
-    total_time = time.time() - start_time
+        single_request = InferenceRequest(
+            prompt=prompt,
+            max_tokens=request.max_tokens,
+            temperature=request.temperature,
+            top_p=request.top_p,
+            model=request.model
+        )
+        response = await generate_stream_response(model, single_request)
+        responses.append(InferenceResponse(
+            text=response,
+            usage={"prompt_tokens": 0, "completion_tokens": 0},  # TODO: Implement token counting
+            model=request.model or DEFAULT_MODEL or "unknown",
+            inference_time=0  # Individual times not tracked in batch
+        ))
+    end_time = time.time()
     
     return BatchInferenceResponse(
         responses=responses,
-        total_time=total_time,
-        request_id=str(uuid4())
+        total_time=end_time - start_time
     )
 
 @app.post("/v1/personalized_completions", response_model=InferenceResponse)
 async def generate_personalized_completion(request: PersonalizedInferenceRequest):
     """
-    Generate a personalized completion using retrieved memories
+    Generate a completion with personalized context from memory
     """
-    model_name = request.model
-    model = get_model_by_name(model_name)
-    
+    # Get model
+    model = get_model_by_name(request.model)
     if not model:
-        if not model_name:
-            raise HTTPException(status_code=503, detail="No models loaded")
-        else:
-            # Try to load the requested model
-            try:
-                model = await load_model(model_name)
-            except Exception as e:
-                raise HTTPException(status_code=503, detail=f"Model {model_name} could not be loaded: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No model available"
+        )
     
-    # Retrieve context from memory service
+    # Get memories for user
+    memories = []
+    if not request.use_mock_memory:
+        # TODO: Implement memory retrieval
+        pass
+    
+    # Add memories to context
+    context = request.context or []
+    for memory in memories[:request.max_memories]:
+        context.append({
+            "role": "system",
+            "content": f"Previous interaction: {memory['content']}"
+        })
+    
+    # Create inference request with context
+    inference_request = InferenceRequest(
+        prompt=request.prompt,
+        max_tokens=request.max_tokens,
+        temperature=request.temperature,
+        top_p=request.top_p,
+        model=request.model,
+        context=context,
+        stream=request.stream
+    )
+    
+    # Generate completion
     start_time = time.time()
+    response = await generate_stream_response(model, inference_request)
+    end_time = time.time()
     
-    try:
-        # Get context from either mock or real memory service
-        if request.use_mock_memory:
-            context = get_mock_context(request.user_id, request.prompt)
-            logger.info(f"Using mock memory context with {len(context)} items")
-        else:
-            context = await get_context_for_prompt(
-                user_id=request.user_id, 
-                prompt=request.prompt,
-                max_memories=request.max_memories
-            )
-            logger.info(f"Retrieved memory context with {len(context)} items")
-        
-        # Handle streaming if requested
-        if request.stream:
-            # Create a request object with the context included
-            inference_request = InferenceRequest(
-                prompt=request.prompt,
-                max_tokens=request.max_tokens,
-                temperature=request.temperature,
-                top_p=request.top_p,
-                context=context,
-                stream=True
-            )
-            
-            return StreamingResponse(
-                generate_stream_response(model, inference_request),
-                media_type="text/event-stream"
-            )
-        
-        # Generate the text with context
-        generated_text = model.generate_reply(
-            prompt=request.prompt,
-            max_new_tokens=request.max_tokens,
-            temperature=request.temperature,
-            top_p=request.top_p,
-            context=context
-        )
-        
-        # Get token counts
-        token_info = model.get_token_count(request.prompt, context)
-        
-        # Calculate completion tokens (rough estimate)
-        completion_tokens = len(generated_text.split())
-        
-        inference_time = time.time() - start_time
-        
-        return InferenceResponse(
-            text=generated_text,
-            usage={
-                "prompt_tokens": token_info["prompt_tokens"],
-                "context_tokens": token_info["context_tokens"],
-                "input_tokens": token_info["total_input_tokens"],
-                "completion_tokens": completion_tokens,
-                "total_tokens": token_info["total_input_tokens"] + completion_tokens
-            },
-            model=model.model_id if hasattr(model, "model_id") else MODEL_TYPE,
-            inference_time=inference_time,
-            request_id=str(uuid4())
-        )
-    
-    except Exception as e:
-        logger.error(f"Personalized inference error: {str(e)}")
-        logger.exception(e)
-        raise HTTPException(status_code=500, detail=f"Personalized inference failed: {str(e)}")
+    return InferenceResponse(
+        text=response,
+        usage={"prompt_tokens": 0, "completion_tokens": 0},  # TODO: Implement token counting
+        model=request.model or DEFAULT_MODEL or "unknown",
+        inference_time=end_time - start_time
+    )
 
 if __name__ == "__main__":
     import uvicorn
