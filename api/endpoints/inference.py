@@ -6,8 +6,7 @@ import json
 import time
 from typing import Any, Dict, List, Optional, Union
 
-from fastapi import (APIRouter, Body, Depends, HTTPException, Path, Query,
-                     status)
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, status
 from fastapi.responses import JSONResponse
 from loguru import logger
 from pydantic import BaseModel, Field

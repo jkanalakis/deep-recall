@@ -8,8 +8,7 @@ import uuid
 from fastapi import Request
 from loguru import logger
 from opentelemetry import trace
-from opentelemetry.trace.propagation.tracecontext import \
-    TraceContextTextMapPropagator
+from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 

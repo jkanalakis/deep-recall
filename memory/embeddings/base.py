@@ -67,8 +67,7 @@ class EmbeddingModelFactory:
         Raises:
             ValueError: If the specified model type is not supported
         """
-        from memory.embeddings.sentence_transformer import \
-            SentenceTransformerModel
+        from memory.embeddings.sentence_transformer import SentenceTransformerModel
         from memory.embeddings.transformer import TransformerEmbeddingModel
 
         if model_type.lower() == "transformer":
