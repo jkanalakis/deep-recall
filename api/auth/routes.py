@@ -11,7 +11,7 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 from pydantic import BaseModel, Field, EmailStr
 
-from api.auth.models import User, UserCreate, UserResponse, TokenResponse
+from api.auth.models import User, UserCreate, UserResponse, TokenResponse, UserUpdateRequest, Role
 from api.auth.providers import (
     get_current_user, 
     require_permission, 
