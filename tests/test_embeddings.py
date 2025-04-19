@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 import numpy as np
+import torch
 
 from memory.embeddings import EmbeddingModelFactory
 from memory.embeddings.base import EmbeddingModel
@@ -15,6 +16,10 @@ class MockSentenceTransformer:
 
     def __init__(self, *args, **kwargs):
         self.dimension = 768
+
+    def get_sentence_embedding_dimension(self):
+        """Return the embedding dimension."""
+        return self.dimension
 
     def encode(self, texts, **kwargs):
         """Return mock embeddings."""
@@ -52,8 +57,45 @@ class TestEmbeddingModels(unittest.TestCase):
             self.assertIsInstance(model, SentenceTransformerModel)
 
         # Test creating a transformer model
-        with patch("memory.embeddings.transformer.AutoModel"):
-            with patch("memory.embeddings.transformer.AutoTokenizer"):
+        mock_model = MagicMock()
+        mock_model.config.hidden_size = 768
+
+        # Create a dictionary-like object with a 'to' method
+        class MockTokenizerOutput(dict):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self["input_ids"] = torch.randint(0, 1000, (1, 10))
+                self["attention_mask"] = torch.ones(1, 10)
+
+            def to(self, device):
+                # Move tensors to device
+                return {k: v.to(device) if hasattr(v, 'to') else v for k, v in self.items()}
+
+        mock_tokenizer = MagicMock()
+        mock_tokenizer.return_value = MockTokenizerOutput()
+
+        # Mock the model outputs
+        class MockOutput:
+            def __init__(self):
+                self.last_hidden_state = torch.randn(1, 10, 768)
+                self.attention_mask = torch.ones(1, 10)
+
+            def get(self, key, default):
+                if key == "attention_mask":
+                    return self.attention_mask
+                return default
+
+        mock_output = MockOutput()
+        mock_model.return_value = mock_output
+
+        with patch(
+            "memory.embeddings.transformer.AutoModel.from_pretrained",
+            return_value=mock_model,
+        ):
+            with patch(
+                "memory.embeddings.transformer.AutoTokenizer.from_pretrained",
+                return_value=mock_tokenizer,
+            ):
                 model = EmbeddingModelFactory.create_model(
                     "transformer", model_name="bert-base-uncased"
                 )
@@ -106,16 +148,18 @@ class TestEmbeddingModels(unittest.TestCase):
 
         mock_tokenizer = MagicMock()
         mock_tokenizer.return_value = {
-            "input_ids": np.random.randint(0, 1000, (1, 10)),
-            "attention_mask": np.ones((1, 10)),
+            "input_ids": torch.randint(0, 1000, (1, 10)),
+            "attention_mask": torch.ones(1, 10),
         }
 
         # Mock the model outputs
         class MockOutput:
             def __init__(self):
-                self.last_hidden_state = np.random.rand(1, 10, 768).astype(np.float32)
+                self.last_hidden_state = torch.randn(1, 10, 768)
+                self.attention_mask = torch.ones(1, 10)
 
-        mock_model.return_value = MockOutput()
+        mock_output = MockOutput()
+        mock_model.return_value = mock_output
 
         with patch(
             "memory.embeddings.transformer.AutoModel.from_pretrained",
