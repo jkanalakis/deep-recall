@@ -4,11 +4,12 @@ Example demonstrating semantic search capabilities of the deep-recall framework.
 """
 
 import os
-import numpy as np
 from datetime import datetime, timedelta
 
-from memory.memory_store import MemoryStore
+import numpy as np
+
 from memory.memory_retriever import MemoryRetriever
+from memory.memory_store import MemoryStore
 
 # Create directory for vector db storage if it doesn't exist
 os.makedirs("example_data", exist_ok=True)

@@ -9,7 +9,7 @@ including context aggregation, request routing, and response handling.
 """
 
 from orchestrator.aggregator import ContextAggregator
-from orchestrator.routing import RequestRouter
 from orchestrator.gateway import ApiGateway
+from orchestrator.routing import RequestRouter
 
 __all__ = ["ContextAggregator", "RequestRouter", "ApiGateway"]

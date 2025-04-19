@@ -2,12 +2,13 @@
 Embedding model implementation using sentence-transformers library.
 """
 
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+from typing import Any, Dict, List, Optional, Union
+
 import numpy as np
 import torch
 from sentence_transformers import SentenceTransformer
-import asyncio
-from concurrent.futures import ThreadPoolExecutor
-from typing import List, Union, Dict, Any, Optional
 
 from memory.embeddings.base import EmbeddingModel
 

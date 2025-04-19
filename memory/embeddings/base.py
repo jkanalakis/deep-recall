@@ -4,8 +4,9 @@ This module defines the abstract base classes that all embedding model implement
 """
 
 from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Optional, Union
+
 import numpy as np
-from typing import List, Union, Optional, Dict, Any
 
 
 class EmbeddingModel(ABC):
@@ -66,8 +67,9 @@ class EmbeddingModelFactory:
         Raises:
             ValueError: If the specified model type is not supported
         """
+        from memory.embeddings.sentence_transformer import \
+            SentenceTransformerModel
         from memory.embeddings.transformer import TransformerEmbeddingModel
-        from memory.embeddings.sentence_transformer import SentenceTransformerModel
 
         if model_type.lower() == "transformer":
             return TransformerEmbeddingModel(**kwargs)

@@ -9,16 +9,16 @@ including connecting to the database, storing memories, and retrieving
 memories based on semantic similarity.
 """
 
-import os
+import asyncio
 import json
 import logging
-import asyncio
-from typing import Dict, List, Optional, Any, Union, Tuple
+import os
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import psycopg2
-from psycopg2.extras import RealDictCursor, execute_values, Json
+from psycopg2.extras import Json, RealDictCursor, execute_values
 from sentence_transformers import SentenceTransformer
 
 # Configure logging

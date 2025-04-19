@@ -1,7 +1,7 @@
 # examples/user_history_example.py
 
-from memory.memory_store import MemoryStore
 from memory.memory_retriever import MemoryRetriever
+from memory.memory_store import MemoryStore
 from models.deepseek_r1_integration import DeepSeekR1Model
 
 

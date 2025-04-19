@@ -6,12 +6,12 @@ This script runs the embedding and inference benchmarks and generates
 reports with the results.
 """
 
+import argparse
+import asyncio
+import json
+import logging
 import os
 import sys
-import json
-import asyncio
-import argparse
-import logging
 from datetime import datetime
 from pathlib import Path
 

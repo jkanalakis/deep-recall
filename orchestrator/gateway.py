@@ -8,24 +8,18 @@ This module implements the API Gateway functionality, providing a unified
 interface for client applications to access memory and inference services.
 """
 
-from typing import Dict, List, Optional, Any, Union
-from fastapi import (
-    FastAPI,
-    Depends,
-    HTTPException,
-    BackgroundTasks,
-    Request,
-    Response,
-    status,
-)
+import json
+import time
+import uuid
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Union
+
+from fastapi import (BackgroundTasks, Depends, FastAPI, HTTPException, Request,
+                     Response, status)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
-import uuid
-import time
-import json
 from loguru import logger
-from datetime import datetime
+from pydantic import BaseModel, Field
 
 from orchestrator.routing import RequestRouter
 

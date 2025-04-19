@@ -2,11 +2,12 @@
 # api/middleware/prometheus.py
 
 import time
+
+import prometheus_client
 from fastapi import Request, Response
+from prometheus_client import Counter, Gauge, Histogram
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
-import prometheus_client
-from prometheus_client import Counter, Histogram, Gauge
 
 # Create metrics
 REQUEST_COUNT = Counter(

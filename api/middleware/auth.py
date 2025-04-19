@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 # api/middleware/auth.py
 
+import os
 import time
 from typing import Dict, Optional
+
 import jwt
-from fastapi import HTTPException, Security, Depends, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pydantic import BaseModel
-import os
+from fastapi import Depends, HTTPException, Security, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from loguru import logger
+from pydantic import BaseModel
 
 # JWT settings (should be in environment variables or config)
 JWT_SECRET = os.getenv(

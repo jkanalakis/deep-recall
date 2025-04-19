@@ -1,11 +1,12 @@
 # memory/memory_retriever.py
 
+import asyncio
+from typing import Any, Dict, List, Optional, Union
+
 import numpy as np
 import torch
-from typing import Dict, List, Optional, Union, Any
-import asyncio
 
-from memory.embeddings import EmbeddingModelFactory, EmbeddingModel
+from memory.embeddings import EmbeddingModel, EmbeddingModelFactory
 from memory.semantic_search import SemanticSearch
 
 

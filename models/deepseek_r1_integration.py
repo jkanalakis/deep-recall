@@ -2,21 +2,19 @@
 
 # Pseudocode demonstrating how you might wrap an LLM
 
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
-import os
-from typing import Dict, Any, Optional, List, AsyncIterator, Callable, Union, Tuple
 import asyncio
 import logging
-from models.gpu_optimizations import (
-    QuantizationMode,
-    ParallelMode,
-    optimize_cuda_memory,
-    get_device_map,
-    clear_gpu_memory,
-    estimate_model_size,
-    get_optimal_batch_size,
-)
+import os
+from typing import (Any, AsyncIterator, Callable, Dict, List, Optional, Tuple,
+                    Union)
+
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
+from models.gpu_optimizations import (ParallelMode, QuantizationMode,
+                                      clear_gpu_memory, estimate_model_size,
+                                      get_device_map, get_optimal_batch_size,
+                                      optimize_cuda_memory)
 
 logger = logging.getLogger(__name__)
 

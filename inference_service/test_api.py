@@ -9,11 +9,12 @@ inference API endpoints.
 import argparse
 import asyncio
 import json
-import httpx
 import sys
-from typing import Dict, Any, List, Optional
 import time
 from pprint import pprint
+from typing import Any, Dict, List, Optional
+
+import httpx
 
 BASE_URL = "http://localhost:8000"
 

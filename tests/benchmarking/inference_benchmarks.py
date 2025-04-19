@@ -5,14 +5,15 @@ This module provides functionality to benchmark the latency and throughput
 of LLM inference.
 """
 
-import logging
-import time
-import json
-import os
-from typing import List, Dict, Any, Optional, Callable
-from datetime import datetime
-import statistics
 import asyncio
+import json
+import logging
+import os
+import statistics
+import time
+from datetime import datetime
+from typing import Any, Callable, Dict, List, Optional
+
 import httpx
 import pytest
 

@@ -5,15 +5,16 @@ This module provides metrics collection and export for the inference service,
 particularly focused on metrics used for horizontal pod autoscaling.
 """
 
-import time
-import threading
 import asyncio
-from typing import Dict, Any, List, Optional, Callable
-from prometheus_client import Counter, Gauge, Histogram, start_http_server
-import torch
 import logging
 import os
+import threading
+import time
 from collections import deque
+from typing import Any, Callable, Dict, List, Optional
+
+import torch
+from prometheus_client import Counter, Gauge, Histogram, start_http_server
 
 logger = logging.getLogger(__name__)
 

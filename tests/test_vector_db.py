@@ -1,8 +1,9 @@
-import unittest
-import numpy as np
 import os
 import tempfile
+import unittest
+
 import faiss
+import numpy as np
 
 from memory.vector_db import VectorDBFactory
 from memory.vector_db.faiss_db import FaissVectorDB

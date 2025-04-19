@@ -6,9 +6,9 @@ to fit within token limits for LLM input.
 """
 
 import logging
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
 
-from transformers import pipeline, AutoModelForSeq2SeqGeneration, AutoTokenizer
+from transformers import AutoModelForSeq2SeqGeneration, AutoTokenizer, pipeline
 
 logger = logging.getLogger(__name__)
 

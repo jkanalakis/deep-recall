@@ -1,11 +1,12 @@
-import unittest
-import tempfile
 import os
-import numpy as np
+import tempfile
+import unittest
 from unittest.mock import patch
 
-from memory.memory_store import MemoryStore
+import numpy as np
+
 from memory.memory_retriever import MemoryRetriever
+from memory.memory_store import MemoryStore
 from memory.semantic_search import SemanticSearch
 
 

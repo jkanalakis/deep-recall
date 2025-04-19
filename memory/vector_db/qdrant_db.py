@@ -2,13 +2,14 @@
 Qdrant vector database implementation.
 """
 
-import os
-import numpy as np
-from typing import List, Dict, Optional, Any, Tuple, Union
 import json
+import os
 import subprocess
 import tempfile
 import time
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+import numpy as np
 
 from memory.vector_db.base import VectorDB
 
@@ -16,14 +17,10 @@ try:
     import qdrant_client
     from qdrant_client import QdrantClient
     from qdrant_client.http import models as rest
-    from qdrant_client.http.models import (
-        Distance,
-        VectorParams,
-        PointStruct,
-        Filter,
-        FieldCondition,
-    )
-    from qdrant_client.http.models import FilterSelector, MatchValue, MatchAny
+    from qdrant_client.http.models import (Distance, FieldCondition, Filter,
+                                           FilterSelector, MatchAny,
+                                           MatchValue, PointStruct,
+                                           VectorParams)
 
     QDRANT_AVAILABLE = True
 except ImportError:

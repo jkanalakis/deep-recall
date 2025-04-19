@@ -11,18 +11,19 @@ This module provides different authentication mechanisms including:
 """
 
 import os
-import time
 import secrets
-from typing import Dict, Optional, List, Tuple, Any, Union
-import jwt
+import time
 from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+import jwt
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, APIKeyHeader
-from pydantic import BaseModel
+from fastapi.security import (APIKeyHeader, HTTPAuthorizationCredentials,
+                              HTTPBearer)
 from loguru import logger
+from pydantic import BaseModel
 
-from api.auth.models import User, TokenResponse
-
+from api.auth.models import TokenResponse, User
 
 # Security scheme definitions
 jwt_scheme = HTTPBearer(auto_error=False)

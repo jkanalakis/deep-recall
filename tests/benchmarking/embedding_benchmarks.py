@@ -5,13 +5,13 @@ This module provides functionality to evaluate the quality of embeddings
 using standard benchmarks like STS (Semantic Textual Similarity).
 """
 
-import logging
-import numpy as np
-from typing import List, Dict, Any, Tuple, Optional
 import json
+import logging
 import os
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
 
+import numpy as np
 from sentence_transformers import SentenceTransformer, util
 
 logger = logging.getLogger(__name__)

@@ -7,15 +7,15 @@ including dependency vulnerabilities, code security issues, and hardcoded secret
 It uses various security tools and generates detailed reports.
 """
 
-import os
-import sys
-import json
 import argparse
+import json
 import logging
+import os
 import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
 
 # Configure logging
 logging.basicConfig(

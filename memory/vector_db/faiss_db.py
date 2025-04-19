@@ -2,11 +2,12 @@
 FAISS vector database implementation.
 """
 
+import json
 import os
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 import faiss
 import numpy as np
-from typing import List, Dict, Optional, Any, Tuple, Union
-import json
 
 from memory.vector_db.base import VectorDB
 

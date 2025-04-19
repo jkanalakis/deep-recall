@@ -8,12 +8,13 @@ This module provides a simple in-memory user repository for development.
 In production, this would be replaced with a database-backed implementation.
 """
 
-from typing import Dict, List, Optional, Union, Any
-from datetime import datetime
 import uuid
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Union
+
 from loguru import logger
 
-from api.auth.models import User, UserCreate, Role
+from api.auth.models import Role, User, UserCreate
 
 
 class UserRepository:
