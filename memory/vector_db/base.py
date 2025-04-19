@@ -128,7 +128,7 @@ class VectorDBFactory:
         Create and return a vector database instance based on the specified type.
 
         Args:
-            db_type: Type of vector database to create ('faiss', 'qdrant', 'milvus', 'chroma')
+            db_type: Type of vector database to create ('faiss', 'qdrant')
             dimension: Dimension of vectors to be stored
             **kwargs: Additional configuration parameters for the database
 
@@ -138,9 +138,7 @@ class VectorDBFactory:
         Raises:
             ValueError: If the specified database type is not supported
         """
-        from memory.vector_db.chroma_db import ChromaVectorDB
         from memory.vector_db.faiss_db import FaissVectorDB
-        from memory.vector_db.milvus_db import MilvusVectorDB
         from memory.vector_db.qdrant_db import QdrantVectorDB
 
         db_type = db_type.lower()
@@ -149,9 +147,5 @@ class VectorDBFactory:
             return FaissVectorDB(dimension, **kwargs)
         elif db_type == "qdrant":
             return QdrantVectorDB(dimension, **kwargs)
-        elif db_type == "milvus":
-            return MilvusVectorDB(dimension, **kwargs)
-        elif db_type == "chroma":
-            return ChromaVectorDB(dimension, **kwargs)
         else:
             raise ValueError(f"Unsupported vector database type: {db_type}")
