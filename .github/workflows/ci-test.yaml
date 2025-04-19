@@ -62,7 +62,7 @@ jobs:
           # Install SWIG first (required for faiss-cpu)
           sudo apt-get update && sudo apt-get install -y swig
           # Install faiss-cpu separately to ensure it's installed correctly
-          pip install faiss-cpu>=1.7.2,<1.8.0
+          pip install faiss-cpu>=1.7.2
           # Install other dependencies
           pip install -r requirements.txt
           pip install pytest pytest-cov pytest-asyncio
@@ -132,7 +132,7 @@ jobs:
           # Install SWIG first (required for faiss-cpu)
           sudo apt-get update && sudo apt-get install -y swig
           # Install faiss-cpu separately to ensure it's installed correctly
-          pip install faiss-cpu>=1.7.2,<1.8.0
+          pip install faiss-cpu>=1.7.2
           # Install other dependencies
           pip install -r requirements.txt
           pip install pytest pytest-cov pytest-asyncio
