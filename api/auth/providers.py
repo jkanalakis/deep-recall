@@ -18,8 +18,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import jwt
 from fastapi import Depends, HTTPException, status
-from fastapi.security import (APIKeyHeader, HTTPAuthorizationCredentials,
-                              HTTPBearer)
+from fastapi.security import APIKeyHeader, HTTPAuthorizationCredentials, HTTPBearer
 from loguru import logger
 from pydantic import BaseModel
 

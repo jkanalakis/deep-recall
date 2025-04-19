@@ -8,15 +8,19 @@ API routes for authentication and user management.
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
-from fastapi import (APIRouter, Body, Depends, HTTPException, Path, Query,
-                     status)
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, status
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr, Field
 
-from api.auth.models import (Role, TokenResponse, User, UserCreate,
-                             UserResponse, UserUpdateRequest)
-from api.auth.providers import (JWTAuth, TokenData, get_current_user,
-                                require_permission)
+from api.auth.models import (
+    Role,
+    TokenResponse,
+    User,
+    UserCreate,
+    UserResponse,
+    UserUpdateRequest,
+)
+from api.auth.providers import JWTAuth, TokenData, get_current_user, require_permission
 from api.auth.repository import user_repository
 
 # Create router

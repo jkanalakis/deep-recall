@@ -7,8 +7,11 @@ from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 
-from memory.embeddings import (EmbeddingModelFactory, SentenceTransformerModel,
-                               TransformerEmbeddingModel)
+from memory.embeddings import (
+    EmbeddingModelFactory,
+    SentenceTransformerModel,
+    TransformerEmbeddingModel,
+)
 
 
 def compute_cosine_similarity(vec1: np.ndarray, vec2: np.ndarray) -> float:

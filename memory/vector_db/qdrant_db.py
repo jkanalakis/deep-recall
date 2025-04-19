@@ -17,10 +17,16 @@ try:
     import qdrant_client
     from qdrant_client import QdrantClient
     from qdrant_client.http import models as rest
-    from qdrant_client.http.models import (Distance, FieldCondition, Filter,
-                                           FilterSelector, MatchAny,
-                                           MatchValue, PointStruct,
-                                           VectorParams)
+    from qdrant_client.http.models import (
+        Distance,
+        FieldCondition,
+        Filter,
+        FilterSelector,
+        MatchAny,
+        MatchValue,
+        PointStruct,
+        VectorParams,
+    )
 
     QDRANT_AVAILABLE = True
 except ImportError:

@@ -10,6 +10,7 @@ import numpy as np
 from memory.embeddings import EmbeddingModelFactory
 from memory.memory_retriever import MemoryRetriever
 from memory.memory_store import MemoryStore
+
 # Import the components to test
 from memory.semantic_search import SemanticSearch
 

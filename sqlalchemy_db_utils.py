@@ -16,8 +16,18 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from sentence_transformers import SentenceTransformer
-from sqlalchemy import (JSON, Boolean, Column, DateTime, Float, ForeignKey,
-                        Integer, String, Text, create_engine)
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    create_engine,
+)
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, relationship, sessionmaker

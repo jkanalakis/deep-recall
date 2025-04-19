@@ -15,6 +15,7 @@ from loguru import logger
 from pydantic import BaseModel, Field
 
 from api.auth.routes import router as auth_router
+
 # Import custom modules
 from api.endpoints import inference, memory
 from api.middleware.auth import authenticate_request

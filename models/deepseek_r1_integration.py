@@ -5,16 +5,20 @@
 import asyncio
 import logging
 import os
-from typing import (Any, AsyncIterator, Callable, Dict, List, Optional, Tuple,
-                    Union)
+from typing import Any, AsyncIterator, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from models.gpu_optimizations import (ParallelMode, QuantizationMode,
-                                      clear_gpu_memory, estimate_model_size,
-                                      get_device_map, get_optimal_batch_size,
-                                      optimize_cuda_memory)
+from models.gpu_optimizations import (
+    ParallelMode,
+    QuantizationMode,
+    clear_gpu_memory,
+    estimate_model_size,
+    get_device_map,
+    get_optimal_batch_size,
+    optimize_cuda_memory,
+)
 
 logger = logging.getLogger(__name__)
 

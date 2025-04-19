@@ -14,8 +14,15 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
-from fastapi import (BackgroundTasks, Depends, FastAPI, HTTPException, Request,
-                     Response, status)
+from fastapi import (
+    BackgroundTasks,
+    Depends,
+    FastAPI,
+    HTTPException,
+    Request,
+    Response,
+    status,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from loguru import logger
