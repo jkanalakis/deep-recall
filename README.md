@@ -1,6 +1,6 @@
 # Deep Recall
 
-A hyper-personalized agent memory framework for open-source LLMs to store, retrieve, and seamlessly integrate past user interactions. This enables LLMs to tailor responses with relevant personal context. It's lightweight, extensible, and easy to deploy on any cloud or local environment.
+A hyper-personalized agent memory framework for open-source LLMs that provides enterprise-grade storage, retrieval, and integration of past user interactions. Built with a three-tier architecture (Memory Service, Inference Service, and Orchestrator), it features GPU-optimized inference, vector database integration, and automated scaling. The framework enables LLMs to deliver contextually relevant responses while maintaining high performance and reliability. It's designed for both cloud and local deployment with comprehensive monitoring and maintenance capabilities.
 
 ## 🔍 Overview
 
