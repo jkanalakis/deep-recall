@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # api/middleware/prometheus.py
 
-import time
 import os
+import time
 
 import prometheus_client
 from fastapi import Request, Response
