@@ -172,18 +172,18 @@ class TestSemanticSearch(unittest.TestCase):
             if text == cat_mat_text:
                 found_in_store = True
                 break
-        
+
         self.assertTrue(found_in_store, "Expected text not found in memory store")
-        
+
         # Now test the hybrid search
         results = self.semantic_search.hybrid_search(query="cat mat", k=5)
-    
+
         # Should have results
         self.assertGreater(len(results), 0)
-    
+
         # Results should have combined score
         self.assertIn("combined_score", results[0])
-    
+
         # At least one result should contain both "cat" and "mat"
         found_match = False
         for result in results:
@@ -191,7 +191,7 @@ class TestSemanticSearch(unittest.TestCase):
             if "cat" in result_text and "mat" in result_text:
                 found_match = True
                 break
-        
+
         self.assertTrue(found_match, "No result found containing both 'cat' and 'mat'")
 
     def test_different_metrics(self):
