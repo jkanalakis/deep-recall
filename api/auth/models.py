@@ -149,8 +149,41 @@ class UserResponse(BaseModel):
                 "email": "john.doe@example.com",
                 "full_name": "John Doe",
                 "roles": ["basic_user"],
-                "created_at": "2023-01-01T00:00:00Z",
-                "last_login": "2023-01-02T12:34:56Z",
+                "created_at": "2024-01-01T00:00:00",
+                "last_login": "2024-01-02T00:00:00",
+            }
+        }
+
+
+class UserUpdateRequest(BaseModel):
+    """Schema for user profile updates"""
+
+    email: Optional[EmailStr] = None
+    full_name: Optional[str] = None
+    password: Optional[str] = None
+    preferences: Optional[Dict[str, Any]] = None
+
+    @validator("password")
+    def password_strength(cls, v):
+        if v is None:
+            return v
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters")
+        if not any(c.isupper() for c in v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not any(c.islower() for c in v):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not any(c.isdigit() for c in v):
+            raise ValueError("Password must contain at least one number")
+        return v
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "email": "john.doe@example.com",
+                "full_name": "John Doe",
+                "password": "NewSecurePass123",
+                "preferences": {"theme": "dark", "notifications": True},
             }
         }
 

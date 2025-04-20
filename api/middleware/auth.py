@@ -105,25 +105,22 @@ async def authenticate_request(
     return token_data
 
 
-def check_scope(
-    required_scope: str, token_data: TokenData = Depends(authenticate_request)
-) -> TokenData:
+def check_scope(required_scope: str):
     """
-    Check if the token has the required scope
+    Create a dependency that checks if the token has the required scope
 
     Args:
         required_scope: Scope needed for the operation
-        token_data: Token data from authentication
 
     Returns:
-        TokenData: The authenticated token data if authorized
-
-    Raises:
-        HTTPException: If the token doesn't have the required scope
+        Callable: A dependency function that checks the scope and returns TokenData
     """
-    if required_scope not in token_data.scopes:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Insufficient permissions: {required_scope} scope required",
-        )
-    return token_data
+    async def scope_checker(token_data: TokenData = Depends(authenticate_request)) -> TokenData:
+        if required_scope not in token_data.scopes:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Insufficient permissions: {required_scope} scope required",
+            )
+        return token_data
+    
+    return scope_checker

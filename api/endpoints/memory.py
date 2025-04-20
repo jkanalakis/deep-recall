@@ -126,7 +126,7 @@ def get_memory_service():
     return MemoryServiceClient()
 
 
-@router.post("/", response_model=MemoryResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/add", response_model=MemoryResponse, status_code=status.HTTP_201_CREATED)
 async def store_memory(
     memory_input: MemoryInput,
     token: TokenData = Depends(authenticate_request),
