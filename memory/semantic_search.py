@@ -4,9 +4,8 @@ Provides configurable semantic similarity search functionality with
 various similarity metrics, pagination, and filtering options.
 """
 
-import heapq
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
