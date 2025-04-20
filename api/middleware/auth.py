@@ -63,7 +63,7 @@ def decode_token(token: str) -> Optional[TokenData]:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         return TokenData(**payload)
     except jwt.ExpiredSignatureError:
-        logger.warning(f"Expired token attempt")
+        logger.warning("Expired token attempt")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired"
         )
@@ -122,5 +122,5 @@ def check_scope(required_scope: str):
                 detail=f"Insufficient permissions: {required_scope} scope required",
             )
         return token_data
-    
+
     return scope_checker

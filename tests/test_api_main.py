@@ -42,7 +42,7 @@ async def test_api_memory_endpoints(client, test_token):
     # Test adding text to memory
     test_text = "This is a test text for the API"
     test_metadata = {"source": "api_test"}
-    
+
     response = client.post(
         "/api/memory/add",
         json={"text": test_text, "metadata": test_metadata},
@@ -50,7 +50,7 @@ async def test_api_memory_endpoints(client, test_token):
     )
     assert response.status_code == 201  # Changed to 201 since that's what the endpoint returns
     assert "id" in response.json()  # Changed from memory_id to id
-    
+
     # Test searching memory
     response = client.post(
         "/api/memory/query",
@@ -62,4 +62,4 @@ async def test_api_memory_endpoints(client, test_token):
     assert isinstance(response_data, list)  # Check that it's a list
     assert len(response_data) > 0  # Check that we got at least one result
     assert "id" in response_data[0]  # Check that the first result has an ID
-    assert "text" in response_data[0]  # Check that the first result has text 
+    assert "text" in response_data[0]  # Check that the first result has text
