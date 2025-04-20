@@ -2,6 +2,7 @@
 # api/middleware/prometheus.py
 
 import time
+import os
 
 import prometheus_client
 from fastapi import Request, Response
@@ -28,8 +29,9 @@ ERROR_COUNT = Counter(
     ["method", "endpoint", "exception"],
 )
 
-# Initialize metrics
-prometheus_client.start_http_server(9090)
+# Only start the prometheus server if explicitly configured
+if os.getenv("ENABLE_PROMETHEUS_SERVER", "false").lower() == "true":
+    prometheus_client.start_http_server(9090)
 
 
 class PrometheusMiddleware(BaseHTTPMiddleware):

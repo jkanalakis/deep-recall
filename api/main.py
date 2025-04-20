@@ -41,9 +41,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Add custom middleware
+# Configure middleware
 app.add_middleware(LoggingMiddleware)
-app.add_middleware(PrometheusMiddleware)
+
+# Only add prometheus middleware in non-test environments
+if os.getenv("ENVIRONMENT") != "test":
+    app.add_middleware(PrometheusMiddleware)
 
 # Include routers for each service
 app.include_router(
