@@ -38,23 +38,22 @@ class MemoryStore:
         self.backup_interval = 3600  # Default to hourly backups (in seconds)
         self.db_type = db_type
 
+        # Initialize empty data structures
+        self.text_data = {}
+        self.metadata = {}
+        self.next_id = 0
+
         # Create vector database
         self.vector_db = VectorDBFactory.create_db(
             db_type=db_type, dimension=embedding_dim, **db_kwargs
         )
 
-        # Load the vector database if it exists
-        if os.path.exists(self.db_path):
-            self.vector_db.load(self.db_path)
+        # Load existing data if available
+        self._load_existing_data()
 
-        # Load metadata if exists
-        self.text_data = {}
-        self.metadata = {}
-        self.next_id = 0
-        self._load_metadata()
-
-    def _load_metadata(self):
-        """Load metadata from disk if available."""
+    def _load_existing_data(self):
+        """Load both vector database and metadata if they exist."""
+        # Load metadata first
         if os.path.exists(self.metadata_path):
             try:
                 with open(self.metadata_path, "r") as f:
@@ -72,6 +71,10 @@ class MemoryStore:
                 self.text_data = {}
                 self.metadata = {}
                 self.next_id = 0
+
+        # Load vector database if it exists
+        if os.path.exists(self.db_path):
+            self.vector_db.load(self.db_path)
 
     def add_text(
         self,
