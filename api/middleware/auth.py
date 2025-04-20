@@ -115,7 +115,10 @@ def check_scope(required_scope: str):
     Returns:
         Callable: A dependency function that checks the scope and returns TokenData
     """
-    async def scope_checker(token_data: TokenData = Depends(authenticate_request)) -> TokenData:
+
+    async def scope_checker(
+        token_data: TokenData = Depends(authenticate_request),
+    ) -> TokenData:
         if required_scope not in token_data.scopes:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

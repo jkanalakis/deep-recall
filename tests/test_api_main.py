@@ -8,7 +8,9 @@ from api.middleware.auth import create_access_token
 @pytest.fixture
 def test_token():
     """Create a test JWT token."""
-    return create_access_token(user_id="test_user", scopes=["read:memory", "write:memory", "delete:memory"])
+    return create_access_token(
+        user_id="test_user", scopes=["read:memory", "write:memory", "delete:memory"]
+    )
 
 
 @pytest.fixture
@@ -46,16 +48,18 @@ async def test_api_memory_endpoints(client, test_token):
     response = client.post(
         "/api/memory/add",
         json={"text": test_text, "metadata": test_metadata},
-        headers={"Authorization": f"Bearer {test_token}"}  # Use the test token
+        headers={"Authorization": f"Bearer {test_token}"},  # Use the test token
     )
-    assert response.status_code == 201  # Changed to 201 since that's what the endpoint returns
+    assert (
+        response.status_code == 201
+    )  # Changed to 201 since that's what the endpoint returns
     assert "id" in response.json()  # Changed from memory_id to id
 
     # Test searching memory
     response = client.post(
         "/api/memory/query",
         json={"query": "test text API", "k": 1},
-        headers={"Authorization": f"Bearer {test_token}"}  # Use the test token
+        headers={"Authorization": f"Bearer {test_token}"},  # Use the test token
     )
     assert response.status_code == 200
     response_data = response.json()
