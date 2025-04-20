@@ -13,7 +13,7 @@ from memory.semantic_search import SemanticSearch
 class MockEmbeddingModel:
     """Mock embedding model for testing purposes."""
 
-    def __init__(self, dimension=768):
+    def __init__(self, dimension=64):
         self.dimension = dimension
 
     def embed_text(self, text):
@@ -251,7 +251,7 @@ class TestMemoryPipelineWithMocks(unittest.TestCase):
         # Patch the EmbeddingModelFactory
         self.embedding_model_patch = patch(
             "memory.embeddings.EmbeddingModelFactory.create_model",
-            return_value=MockEmbeddingModel(),
+            return_value=MockEmbeddingModel(dimension=64),  # Use same dimension as other tests
         )
         self.embedding_model_patch.start()
 
@@ -267,9 +267,9 @@ class TestMemoryPipelineWithMocks(unittest.TestCase):
 
     def test_memory_retriever_initialization(self):
         """Test that memory retriever can be initialized with factory-created embedding model."""
-        # Initialize memory store
+        # Initialize memory store with the same dimension as the mock model
         memory_store = MemoryStore(
-            embedding_dim=768,
+            embedding_dim=64,  # Match the mock model's dimension
             db_type="faiss",
             db_path=self.db_path,
             metadata_path=self.metadata_path,

@@ -14,6 +14,7 @@ class MemoryRetriever:
     def __init__(
         self,
         memory_store,
+        embedding_model=None,
         model_type: str = "sentence_transformer",
         model_name: str = "all-MiniLM-L6-v2",
         **model_kwargs
@@ -23,15 +24,20 @@ class MemoryRetriever:
 
         Args:
             memory_store: Vector store for embeddings and text data
+            embedding_model: Optional pre-configured embedding model to use
             model_type: Type of embedding model to use ("transformer" or "sentence_transformer")
             model_name: Name of the model to use (from HuggingFace or sentence-transformers)
             **model_kwargs: Additional arguments to pass to the embedding model
         """
-        # Create embedding model through factory
-        self.model_config = {"model_name": model_name, **model_kwargs}
-        self.embedding_model = EmbeddingModelFactory.create_model(
-            model_type, **self.model_config
-        )
+        # Use provided embedding model or create one through factory
+        if embedding_model is not None:
+            self.embedding_model = embedding_model
+        else:
+            # Create embedding model through factory
+            self.model_config = {"model_name": model_name, **model_kwargs}
+            self.embedding_model = EmbeddingModelFactory.create_model(
+                model_type, **self.model_config
+            )
 
         self.memory_store = memory_store
 
