@@ -282,8 +282,7 @@ class TestMemoryPipelineWithMocks(unittest.TestCase):
 
         # Initialize memory retriever with mock model directly
         memory_retriever = MemoryRetriever(
-            memory_store=memory_store,
-            embedding_model=mock_model
+            memory_store=memory_store, embedding_model=mock_model
         )
 
         # Test basic functionality
