@@ -65,7 +65,8 @@ class SemanticSearch:
         """
         if not self.embedding_model:
             raise ValueError(
-                "No embedding model available. Either provide one during initialization or use search_with_embedding."
+                "No embedding model available. Either provide one during initialization "
+                "or use search_with_embedding."
             )
 
         # Generate query embedding
@@ -129,7 +130,7 @@ class SemanticSearch:
             filter_metadata=filter_metadata,
         )
 
-        # Post-process results based on the specified similarity metric if different from default
+        # Post-process results based on the specified similarity metric if different
         if sim_metric != "cosine" and len(results) > 0:
             results = self._recompute_similarities(query_embedding, results, sim_metric)
 
@@ -245,21 +246,21 @@ class SemanticSearch:
 
             # Convert text to lowercase words
             memory_words = text.lower().split()
-            
+
             # Calculate various keyword matching scores
             exact_match_score = 0
             word_match_score = 0
             proximity_score = 0
-            
+
             # Check for exact phrase match
             if query.lower() in text.lower():
                 exact_match_score = 1.0
-            
+
             # Check for individual word matches
             matching_words = set(query_words).intersection(set(memory_words))
             if matching_words:
                 word_match_score = len(matching_words) / len(query_words)
-            
+
             # Check for word proximity
             if len(query_words) > 1:
                 for i in range(len(memory_words) - len(query_words) + 1):
@@ -267,14 +268,14 @@ class SemanticSearch:
                     if all(word in window for word in query_words):
                         proximity_score = 1.0
                         break
-            
+
             # Combine scores with weights
             total_score = (
-                exact_match_score * 0.5 +
-                word_match_score * 0.3 +
-                proximity_score * 0.2
+                exact_match_score * 0.5
+                + word_match_score * 0.3
+                + proximity_score * 0.2
             )
-            
+
             if total_score > 0:
                 keyword_scores[memory_id] = total_score
 
