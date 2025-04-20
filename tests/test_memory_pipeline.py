@@ -37,8 +37,10 @@ class MockEmbeddingModel:
         np.random.seed(hash_val)
         emb = np.random.rand(self.dimension).astype(np.float32)
 
-        # Normalize the vector
-        emb = emb / np.linalg.norm(emb)
+        # Normalize the vector to unit length for cosine similarity
+        norm = np.linalg.norm(emb)
+        if norm > 0:
+            emb = emb / norm
         return emb
 
     async def embed_text_async(self, text):

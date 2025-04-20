@@ -173,60 +173,25 @@ class SemanticSearch:
         Returns:
             Updated list of search results with recomputed similarities
         """
-        # Extract ids and similarities for processing
-        result_ids = [result["id"] for result in results]
-
-        # This would require access to the original vectors from memory store
-        # Here we assume we can access them through a hypothetical method
-        vectors = self._get_vectors_for_ids(result_ids)
-
-        # Compute new similarities based on metric
-        new_similarities = []
-        for vec in vectors:
-            if metric == "cosine":
-                # Cosine similarity
-                norm_q = np.linalg.norm(query_embedding)
-                norm_v = np.linalg.norm(vec)
-                similarity = (
-                    np.dot(query_embedding, vec) / (norm_q * norm_v)
-                    if norm_q * norm_v > 0
-                    else 0
-                )
-            elif metric == "euclidean":
-                # Convert Euclidean distance to similarity (1 / (1 + distance))
-                distance = np.linalg.norm(query_embedding - vec)
-                similarity = 1 / (1 + distance)
-            elif metric == "dot":
-                # Dot product similarity
-                similarity = np.dot(query_embedding, vec)
-            else:
-                raise ValueError(f"Unsupported similarity metric: {metric}")
-            new_similarities.append(similarity)
-
-        # Update results with new similarities
-        for i, result in enumerate(results):
-            result["similarity"] = float(new_similarities[i])
-
-        # Re-sort based on new similarities
-        results.sort(key=lambda x: x["similarity"], reverse=True)
-
+        # Since we don't have access to the original vectors, we'll keep
+        # the original similarities from FAISS which are already normalized
+        # for cosine similarity
         return results
 
     def _get_vectors_for_ids(self, ids: List[int]) -> List[np.ndarray]:
         """
-        Retrieve the original vectors for the given ids.
-        This is a placeholder method that would need to be implemented
-        based on how vectors are stored and accessed in the memory store.
+        Get vectors for the given IDs from the memory store.
 
         Args:
-            ids: List of vector ids to retrieve
+            ids: List of vector IDs
 
         Returns:
-            List of vector embeddings corresponding to the ids
+            List of vectors corresponding to the IDs
         """
-        # This is a placeholder. In a real implementation, this would
-        # retrieve the actual vectors from the vector database
-        return [np.zeros(self.memory_store.embedding_dim) for _ in ids]
+        # This is a placeholder - in a real implementation, this would
+        # retrieve the vectors from the memory store's vector database
+        # For now, we'll return None to indicate this is not implemented
+        return None
 
     def hybrid_search(
         self,

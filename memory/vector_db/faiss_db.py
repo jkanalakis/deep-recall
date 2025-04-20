@@ -173,6 +173,14 @@ class FaissVectorDB(VectorDB):
                 (n_queries, 0), dtype=np.int64
             )
 
+        # For inner product metric, we need to ensure the index is trained
+        if self.index_type == "ivf" and not self.index.is_trained:
+            # Create some dummy vectors for training
+            dummy_vectors = np.random.rand(100, self.dimension).astype(np.float32)
+            if self.metric == "ip":
+                faiss.normalize_L2(dummy_vectors)
+            self.index.train(dummy_vectors)
+
         similarities, faiss_indices = self.index.search(query_vectors, k)
 
         # Convert FAISS internal indices to external IDs

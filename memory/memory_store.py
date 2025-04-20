@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
+import faiss
 
 from memory.vector_db import VectorDBFactory
 
@@ -146,6 +147,10 @@ class MemoryStore:
             query_vectors = query_embedding.reshape(1, -1)
         else:
             query_vectors = query_embedding
+
+        # Ensure query vector is normalized for cosine similarity
+        if self.vector_db.metric == "ip":
+            faiss.normalize_L2(query_vectors)
 
         # Perform search in vector database
         similarities, indices = self.vector_db.search(query_vectors, k=k)
