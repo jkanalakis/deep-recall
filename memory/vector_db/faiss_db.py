@@ -102,9 +102,17 @@ class FaissVectorDB(VectorDB):
         if self.metric == "ip":
             faiss.normalize_L2(vectors)
 
-        # Check if IVF index needs training
-        if self.index_type == "ivf" and not self.index.is_trained and n_vectors > 0:
-            self.index.train(vectors)
+        # For IVF indices, ensure the index is trained before adding vectors
+        if self.index_type == "ivf" and not self.index.is_trained:
+            if n_vectors > 0:
+                # Train on the actual vectors if we have them
+                self.index.train(vectors)
+            else:
+                # Create dummy vectors for training if we don't have any
+                dummy_vectors = np.random.rand(100, self.dimension).astype(np.float32)
+                if self.metric == "ip":
+                    faiss.normalize_L2(dummy_vectors)
+                self.index.train(dummy_vectors)
 
         # Get or create IDs
         if ids is None:
@@ -126,12 +134,13 @@ class FaissVectorDB(VectorDB):
         start_idx = self.get_vector_count()
 
         # Add vectors to FAISS
-        self.index.add(vectors)
+        if n_vectors > 0:
+            self.index.add(vectors)
 
-        # Map external IDs to FAISS internal indices
-        for i, external_id in enumerate(assigned_ids):
-            faiss_idx = start_idx + i
-            self.id_map[faiss_idx] = external_id
+            # Map external IDs to FAISS internal indices
+            for i, external_id in enumerate(assigned_ids):
+                faiss_idx = start_idx + i
+                self.id_map[faiss_idx] = external_id
 
         return assigned_ids
 
@@ -173,14 +182,17 @@ class FaissVectorDB(VectorDB):
                 faiss.normalize_L2(dummy_vectors)
             self.index.train(dummy_vectors)
 
-        # Perform search
-        k = min(k, self.get_vector_count())  # Can't retrieve more than what exists
-        if k == 0:
+        # Get the number of vectors in the index
+        n_vectors = self.get_vector_count()
+        if n_vectors == 0:
+            # Return empty results if no vectors in the index
             n_queries = query_vectors.shape[0]
             return np.zeros((n_queries, 0), dtype=np.float32), np.zeros(
                 (n_queries, 0), dtype=np.int64
             )
 
+        # Perform search
+        k = min(k, n_vectors)  # Can't retrieve more than what exists
         similarities, faiss_indices = self.index.search(query_vectors, k)
 
         # Convert FAISS internal indices to external IDs

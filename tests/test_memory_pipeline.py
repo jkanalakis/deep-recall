@@ -268,7 +268,7 @@ class TestMemoryPipelineWithMocks(unittest.TestCase):
         self.temp_dir.cleanup()
 
     def test_memory_retriever_initialization(self):
-        """Test that memory retriever can be initialized with factory-created embedding model."""
+        """Test that memory retriever can be initialized with a mock embedding model."""
         # Initialize memory store with the same dimension as the mock model
         memory_store = MemoryStore(
             embedding_dim=64,  # Match the mock model's dimension
@@ -277,11 +277,13 @@ class TestMemoryPipelineWithMocks(unittest.TestCase):
             metadata_path=self.metadata_path,
         )
 
-        # Initialize memory retriever with model factory
+        # Create mock embedding model
+        mock_model = MockEmbeddingModel(dimension=64)
+
+        # Initialize memory retriever with mock model directly
         memory_retriever = MemoryRetriever(
             memory_store=memory_store,
-            model_type="sentence_transformer",
-            model_name="mock-model",
+            embedding_model=mock_model
         )
 
         # Test basic functionality

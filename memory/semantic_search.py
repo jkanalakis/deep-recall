@@ -173,10 +173,33 @@ class SemanticSearch:
         Returns:
             Updated list of search results with recomputed similarities
         """
-        # Since we don't have access to the original vectors, we'll keep
-        # the original similarities from FAISS which are already normalized
-        # for cosine similarity
-        return results
+        # Get vectors for all results
+        vectors = self._get_vectors_for_ids([r["id"] for r in results])
+        if vectors is None:
+            # If we can't get the vectors, return original results
+            return results
+
+        # Compute new similarities based on the metric
+        new_results = []
+        for result, vector in zip(results, vectors):
+            if metric == "cosine":
+                # Cosine similarity is already normalized in FAISS
+                similarity = result["similarity"]
+            elif metric == "euclidean":
+                # Convert cosine similarity to euclidean distance
+                # For normalized vectors: ||a-b||^2 = 2(1-cos(a,b))
+                similarity = 1 - (result["similarity"] / 2)
+            elif metric == "dot":
+                # Dot product is proportional to cosine similarity for normalized vectors
+                similarity = result["similarity"]
+            else:
+                raise ValueError(f"Unsupported similarity metric: {metric}")
+
+            new_result = result.copy()
+            new_result["similarity"] = similarity
+            new_results.append(new_result)
+
+        return new_results
 
     def _get_vectors_for_ids(self, ids: List[int]) -> List[np.ndarray]:
         """
