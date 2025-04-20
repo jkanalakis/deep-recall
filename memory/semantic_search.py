@@ -220,19 +220,18 @@ class SemanticSearch:
             semantic_weight = semantic_weight / total
             keyword_weight = keyword_weight / total
 
-        # Perform semantic search
+        # Perform semantic search with a larger k to get more candidates
         semantic_results = self.search(
             query=query,
-            k=k * 2,  # Get more results to combine with keyword search
+            k=k * 3,  # Get more results to combine with keyword search
             filter_metadata=filter_metadata,
         )["results"]
 
-        # Perform keyword search (basic implementation)
-        query_words = set(query.lower().split())
+        # Perform keyword search with improved scoring
+        query_words = query.lower().split()
         keyword_scores = {}
 
-        # This is a simplified keyword search that would need to be replaced
-        # with a proper text search implementation (e.g., using SQL or Elasticsearch)
+        # Get all texts from memory store
         for memory_id, text in self.memory_store.text_data.items():
             if filter_metadata:
                 # Skip if metadata doesn't match filter
@@ -244,13 +243,40 @@ class SemanticSearch:
                 ):
                     continue
 
-            # Simple TF scoring - count matching words and normalize
-            memory_words = set(text.lower().split())
-            matching_words = query_words.intersection(memory_words)
-
+            # Convert text to lowercase words
+            memory_words = text.lower().split()
+            
+            # Calculate various keyword matching scores
+            exact_match_score = 0
+            word_match_score = 0
+            proximity_score = 0
+            
+            # Check for exact phrase match
+            if query.lower() in text.lower():
+                exact_match_score = 1.0
+            
+            # Check for individual word matches
+            matching_words = set(query_words).intersection(set(memory_words))
             if matching_words:
-                score = len(matching_words) / max(len(query_words), 1)
-                keyword_scores[memory_id] = score
+                word_match_score = len(matching_words) / len(query_words)
+            
+            # Check for word proximity
+            if len(query_words) > 1:
+                for i in range(len(memory_words) - len(query_words) + 1):
+                    window = memory_words[i:i + len(query_words)]
+                    if all(word in window for word in query_words):
+                        proximity_score = 1.0
+                        break
+            
+            # Combine scores with weights
+            total_score = (
+                exact_match_score * 0.5 +
+                word_match_score * 0.3 +
+                proximity_score * 0.2
+            )
+            
+            if total_score > 0:
+                keyword_scores[memory_id] = total_score
 
         # Sort keyword results
         keyword_results = [
@@ -262,7 +288,7 @@ class SemanticSearch:
             }
             for memory_id, score in sorted(
                 keyword_scores.items(), key=lambda x: x[1], reverse=True
-            )[: k * 2]
+            )[: k * 3]
         ]
 
         # Combine results with weighted scores
