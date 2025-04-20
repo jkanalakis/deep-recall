@@ -96,6 +96,12 @@ class MemoryStore:
             vectors = embedding.reshape(1, -1)
         else:
             vectors = embedding
+            
+        # Ensure vectors have the correct dimension
+        if vectors.shape[1] != self.embedding_dim:
+            raise ValueError(
+                f"Embedding dimension mismatch: expected {self.embedding_dim}, got {vectors.shape[1]}"
+            )
 
         # Assign ID
         current_id = self.next_id
