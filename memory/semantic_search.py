@@ -263,16 +263,14 @@ class SemanticSearch:
             # Check for word proximity
             if len(query_words) > 1:
                 for i in range(len(memory_words) - len(query_words) + 1):
-                    window = memory_words[i:i + len(query_words)]
+                    window = memory_words[i : i + len(query_words)]
                     if all(word in window for word in query_words):
                         proximity_score = 1.0
                         break
 
             # Combine scores with weights
             total_score = (
-                exact_match_score * 0.5
-                + word_match_score * 0.3
-                + proximity_score * 0.2
+                exact_match_score * 0.5 + word_match_score * 0.3 + proximity_score * 0.2
             )
 
             if total_score > 0:
