@@ -231,6 +231,7 @@ class TestMemoryPipeline(unittest.TestCase):
         self.memory_store.save_index()
 
         # Create a new memory store and retriever that will load from the saved files
+        # Make sure to use the same paths as the original memory store
         new_memory_store = MemoryStore(
             embedding_dim=self.embedding_dim,
             db_type="faiss",
