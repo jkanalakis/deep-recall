@@ -63,7 +63,9 @@ class TestMemoryPipeline(unittest.TestCase):
         self.metadata_path = os.path.join(self.temp_dir.name, "test_metadata.json")
 
         # Create mock embedding model with a smaller dimension for testing
-        self.embedding_model = MockEmbeddingModel(dimension=64)  # Using smaller dimension for tests
+        self.embedding_model = MockEmbeddingModel(
+            dimension=64
+        )  # Using smaller dimension for tests
         self.embedding_dim = self.embedding_model.get_embedding_dim()
 
         # Initialize memory store with FAISS vector database using the correct dimension

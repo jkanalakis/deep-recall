@@ -96,7 +96,7 @@ class MemoryStore:
             vectors = embedding.reshape(1, -1)
         else:
             vectors = embedding
-            
+
         # Ensure vectors have the correct dimension
         if vectors.shape[1] != self.embedding_dim:
             raise ValueError(
