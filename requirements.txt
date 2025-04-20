@@ -29,6 +29,7 @@ pydantic>=1.9.0,<2.0.0  # Specific range for compatibility
 starlette>=0.20.0
 python-multipart>=0.0.5  # For form data parsing
 python-jose[cryptography]>=3.3.0  # For JWT handling
+PyJWT>=2.10.0  # For JWT token encoding/decoding
 passlib[bcrypt]>=1.7.4  # For password hashing
 email-validator>=1.3.0  # For email validation
 httpx>=0.24.0         # For async HTTP requests
