@@ -251,7 +251,9 @@ class TestMemoryPipelineWithMocks(unittest.TestCase):
         # Patch the EmbeddingModelFactory
         self.embedding_model_patch = patch(
             "memory.embeddings.EmbeddingModelFactory.create_model",
-            return_value=MockEmbeddingModel(dimension=64),  # Use same dimension as other tests
+            return_value=MockEmbeddingModel(
+                dimension=64
+            ),  # Use same dimension as other tests
         )
         self.embedding_model_patch.start()
 
