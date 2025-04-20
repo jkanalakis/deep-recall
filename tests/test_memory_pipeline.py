@@ -194,16 +194,16 @@ class TestMemoryPipeline(unittest.TestCase):
 
                 # Create semantic search with the current store
                 semantic_search = SemanticSearch(
-                    memory_store=memory_store,
-                    embedding_model=self.embedding_model
+                    memory_store=memory_store, embedding_model=self.embedding_model
                 )
 
                 # Create retriever with the current store and semantic search
                 retriever = MemoryRetriever(
-                    memory_store=memory_store,
-                    embedding_model=self.embedding_model
+                    memory_store=memory_store, embedding_model=self.embedding_model
                 )
-                retriever.semantic_search = semantic_search  # Set the semantic search component
+                retriever.semantic_search = (
+                    semantic_search  # Set the semantic search component
+                )
 
                 # Add text to memory
                 retriever.add_to_memory(test_text, test_metadata)
