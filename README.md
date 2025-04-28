@@ -2,7 +2,7 @@
 
 A hyper-personalized agent memory framework for open-source LLMs that provides enterprise-grade storage, retrieval, and integration of past user interactions. Built with a three-tier architecture (Memory Service, Inference Service, and Orchestrator), it features GPU-optimized inference, vector database integration, and automated scaling. The framework enables LLMs to deliver contextually relevant responses while maintaining high performance and reliability. It's designed for both cloud and local deployment with comprehensive monitoring and maintenance capabilities.
 
-## 🔍 Overview
+## Overview
 
 Deep Recall is a sophisticated memory framework designed to enhance the capabilities of open-source Large Language Models (LLMs) by providing:
 
@@ -10,7 +10,7 @@ Deep Recall is a sophisticated memory framework designed to enhance the capabili
 - **Personalized Responses**: Tailors responses based on user history, preferences, and past interactions
 - **Scalable Architecture**: Designed for high-performance in both cloud and local deployments
 
-## 🚀 Key Features
+## Key Features
 
 - **Vector Memory**: Semantic embeddings for quick, accurate retrieval of user history  
 - **Modular Design**: Swap out storage backends (FAISS, Milvus, Qdrant, Chroma) or LLMs with minimal changes
@@ -20,7 +20,7 @@ Deep Recall is a sophisticated memory framework designed to enhance the capabili
 - **GPU Acceleration**: Optimized for GPU inference with support for quantization
 - **Comprehensive Monitoring**: Built-in metrics and logging for performance tracking
 
-## 🏗️ System Architecture
+## System Architecture
 
 Deep Recall consists of three primary components:
 
@@ -40,7 +40,7 @@ Deep Recall consists of three primary components:
 - **Context Aggregation**: Combines retrieved memories with current context
 - **API Management**: RESTful and gRPC interfaces for external integration
 
-## 🛠️ Quick Start
+## Quick Start
 
 ### Prerequisites
 - Python 3.8+
@@ -72,7 +72,7 @@ python examples/user_history_example.py
 
 This adds sample user messages, retrieves relevant memory, and demonstrates how to integrate with an open-source LLM.
 
-## 📊 Advanced Examples
+## Advanced Examples
 
 ### Semantic Search
 
@@ -128,7 +128,7 @@ response = llm.generate(
 print(response)
 ```
 
-## 🗄️ Database Configuration
+## 🗄Database Configuration
 
 Deep Recall uses PostgreSQL with the pgvector extension for efficient vector storage and retrieval.
 
@@ -142,7 +142,7 @@ Deep Recall uses PostgreSQL with the pgvector extension for efficient vector sto
 
 See [database_setup.md](database_setup.md) for detailed setup instructions.
 
-## 🧪 Testing
+## Testing
 
 The project includes comprehensive unit tests, integration tests, and API tests.
 
@@ -180,7 +180,7 @@ All tests run automatically on GitHub Actions for every pull request and push to
 
 For more details on CI, see the [CI/CD workflow documentation](./.github/workflows/README.md).
 
-## 🐳 Docker & Kubernetes Deployment
+## Docker & Kubernetes Deployment
 
 ### Local Development with Docker
 
@@ -206,7 +206,7 @@ helm install deep-recall ./deployments/kubernetes/helm/deep-recall -f ./deployme
 
 See the [Kubernetes deployment README](./deployments/kubernetes/README.md) for more details.
 
-## 🔄 CI/CD Pipeline
+## CI/CD Pipeline
 
 The project uses GitHub Actions for continuous integration and deployment:
 
@@ -214,7 +214,7 @@ The project uses GitHub Actions for continuous integration and deployment:
 - **CD**: Automatic image building and deployment to development environment
 - **Production**: Manual approval required for production deployments
 
-## 📝 API Reference
+## API Reference
 
 Deep Recall provides RESTful APIs for memory management and retrieval:
 
@@ -231,7 +231,7 @@ Deep Recall provides RESTful APIs for memory management and retrieval:
 
 See the [API documentation](./docs/api.md) for complete details.
 
-## 📊 Performance Considerations
+## Performance Considerations
 
 ### Memory Optimization
 - Use chunking strategies for large text inputs
@@ -243,7 +243,7 @@ See the [API documentation](./docs/api.md) for complete details.
 - Database sharding for large-scale deployments
 - GPU-accelerated inference for production workloads
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Feel free to open an issue or submit a pull request with enhancements and bug fixes. See [CONTRIBUTING.md](./CONTRIBUTING.md) for details on our workflow and code style.
 
@@ -262,7 +262,7 @@ pip install -r requirements-dev.txt
 pre-commit install
 ```
 
-## 📌 Roadmap
+## Roadmap
 
 1. Backup & Disaster Recovery:
 
@@ -298,16 +298,7 @@ pre-commit install
 
 * Simple front-end example (e.g., React, Vue) that demonstrates API integration.
 
-## 📄 License
-
-Distributed under the [Apache 2.0 License](LICENSE). Make it yours, and help build the future of AI-driven personalized experiences!
-
-## 🙏 Acknowledgements
-
-- This project builds upon research from the field of personalized AI assistants
-- Special thanks to the open-source ML community for providing accessible models and tools
-
-## 🔒 Security Scanning
+## Security Scanning
 
 Deep Recall includes a comprehensive security scanning system to ensure code quality and identify potential vulnerabilities:
 
