@@ -4,17 +4,15 @@ services:
   db:
     image: pgvector/pgvector:pg16
     container_name: deep-recall-postgres
-    restart: always
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: deep_recall
+      POSTGRES_DB: recall_memories_db
     ports:
-      - "5433:5432"
+      - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./init_embeddings_tables.sql:/docker-entrypoint-initdb.d/init_embeddings_tables.sql
-      - ./init_db.sh:/docker-entrypoint-initdb.d/init_db.sh
+      - postgres_data:/var/lib/postgresql/data
+      - ../init_embeddings_tables.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -22,5 +20,4 @@ services:
       retries: 5
 
 volumes:
-  pgdata:
-    driver: local 
+  postgres_data: 

@@ -1,5 +1,66 @@
 # Deep Recall
 
+Deep Recall is an open source framework for adding contextual memory about individual users to enrich conversations with open-source LLMs.
+
+## Quick Setup
+
+To set up and run Deep Recall:
+
+1. Clone the repository:
+```bash
+git clone https://github.com/your-org/deep-recall.git
+cd deep-recall
+```
+
+2. Initialize the database:
+```bash
+# Initialize the database with schema and tables
+./init_db.sh
+```
+
+3. Run the application:
+```bash
+# Using docker-compose
+docker-compose up
+
+# Or manually start the API
+python -m memory.app
+```
+
+## Project Organization
+
+Deep Recall follows a clean separation of concerns:
+
+- **Core Framework**: The framework's core functionality, interfaces, and abstractions
+- **Deployments**: Generic deployment configurations in the `deployments` directory
+  - Docker Compose files for different deployment scenarios are in `deployments/docker/`
+- **Examples**: Working implementations using the framework in the `examples` directory
+  - Each example contains its own specific implementation files (like Docker Compose)
+
+## Examples
+
+You can run the included examples:
+
+### Streamlit Memories
+
+```bash
+cd examples/streamlit-memories
+./setup.sh
+streamlit run streamlit_app.py
+```
+
+### Streamlit Chat
+
+```bash
+cd examples/streamlit-chat
+./setup.sh
+streamlit run streamlit_app.py
+```
+
+---
+
+# Deep Recall
+
 A hyper-personalized agent memory framework for open-source LLMs that provides enterprise-grade storage, retrieval, and integration of past user interactions. Built with a three-tier architecture (Memory Service, Inference Service, and Orchestrator), it features GPU-optimized inference, vector database integration, and automated scaling. The framework enables LLMs to deliver contextually relevant responses while maintaining high performance and reliability. It's designed for both cloud and local deployment with comprehensive monitoring and maintenance capabilities.
 
 ## Overview
@@ -386,7 +447,8 @@ This directory contains scripts and configuration for setting up a PostgreSQL da
 
 - `init_embeddings_tables.sql` - SQL script to create the necessary tables and functions
 - `init_db.sh` - Bash script to initialize the database during Docker container startup
-- `docker-compose.db.yml` - Docker Compose file for setting up PostgreSQL with pgvector
+- `deployments/docker/docker-compose.db.yml` - Generic Docker Compose file for setting up PostgreSQL with pgvector
+- `examples/streamlit-memories/docker-compose.db.yml` - Streamlit-specific Docker Compose file
 - `test_db.py` - Python script to test the database connection and vector operations
 
 ## Quick Start
@@ -394,7 +456,7 @@ This directory contains scripts and configuration for setting up a PostgreSQL da
 1. Start the PostgreSQL database with pgvector:
 
 ```bash
-docker-compose -f docker-compose.db.yml up -d
+docker-compose -f deployments/docker/docker-compose.db.yml up -d
 ```
 
 2. Verify the database is running:

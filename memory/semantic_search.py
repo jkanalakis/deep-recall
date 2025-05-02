@@ -1,119 +1,112 @@
 #!/usr/bin/env python3
 """
-Semantic search capabilities for Deep Recall.
+Semantic search for Deep Recall.
 
-This module provides semantic similarity search functionality for retrieving memories.
+This module provides semantic search capabilities for finding relevant memories.
 """
 
-from datetime import datetime
-from typing import Any, Dict, List, Optional
-
+import logging
+from typing import Dict, List, Optional, Any
 import numpy as np
-from sentence_transformers import SentenceTransformer
+from datetime import datetime
 
 from memory.models import Memory
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
+
 class SemanticSearch:
-    def __init__(
-        self,
-        vector_store,
-        embedding_model=None,
-        model_name: str = "all-MiniLM-L6-v2",
-        dimension: int = 384,
-    ):
+    """Semantic search for finding relevant memories."""
+
+    def __init__(self, embedding_model, memory_store):
         """
-        Initialize the semantic search with the specified parameters.
+        Initialize the semantic search with embedding model and memory store.
 
         Args:
-            vector_store: Vector store instance for searching embeddings
-            embedding_model: Optional pre-configured embedding model
-            model_name: Name of the sentence transformer model to use
-            dimension: Embedding dimension
+            embedding_model: Model for generating text embeddings
+            memory_store: Memory store for storing and retrieving memories
         """
-        self.vector_store = vector_store
-        self.dimension = dimension
-        
-        # Initialize embedding model if not provided
-        if embedding_model is None:
-            self.embedding_model = SentenceTransformer(model_name)
-        else:
-            self.embedding_model = embedding_model
+        self.embedding_model = embedding_model
+        self.memory_store = memory_store
+        logger.info("Initialized SemanticSearch")
 
-    def index_memory(self, memory: Memory) -> bool:
-        """
-        Index a memory for semantic search.
-        
-        Args:
-            memory: Memory object to index
-            
-        Returns:
-            Success status
-        """
-        # Generate embedding for the memory text
-        embedding = self.embed_text(memory.text)
-        
-        # Store in vector store
-        return self.vector_store.store_embedding(memory.id, embedding, memory.metadata)
-    
     def search(
         self,
         user_id: str,
         query: str,
         limit: int = 5,
-        threshold: float = 0.6,
+        threshold: float = 0.7,
+        filter_metadata: Optional[Dict[str, Any]] = None,
     ) -> List[Memory]:
         """
-        Perform semantic search based on query text.
+        Search for relevant memories based on semantic similarity.
 
         Args:
-            user_id: User ID to filter results
-            query: The query text to search for
+            user_id: ID of the user to search memories for
+            query: Query text to search for
             limit: Maximum number of results to return
-            threshold: Similarity threshold (0-1)
+            threshold: Minimum similarity threshold (0-1)
+            filter_metadata: Optional metadata filters to apply
 
         Returns:
             List of Memory objects with similarity scores
         """
         # Generate query embedding
-        query_embedding = self.embed_text(query)
+        query_embedding = self.embedding_model.embed_text(query)
         
-        # Search in vector store
-        filter_expr = {"user_id": user_id}
-        results = self.vector_store.search(
-            query_embedding=query_embedding,
-            limit=limit, 
-            threshold=threshold,
-            filter_expr=filter_expr
+        # Search using the memory store's optimized search function
+        results = self.memory_store.search_memories(
+            user_id=user_id,
+            query_vector=query_embedding,
+            limit=limit,
+            threshold=threshold
         )
         
-        # Format results as Memory objects
+        # Convert results to Memory objects
         memories = []
         for result in results:
-            # Create a memory object with similarity score
-            memory_id = result["id"]
-            # We don't have the original memory data in the vector store results
-            # This is a simplified implementation
             memory = Memory(
-                id=memory_id,
-                text="", # Placeholder
-                user_id=user_id,
-                created_at=datetime.now().isoformat(),
+                id=result["id"],
+                text=result["text"],
+                user_id=result["user_id"],
+                created_at=result["created_at"],
+                metadata=result["metadata"],
             )
             
-            # Add similarity score as an attribute
-            memory.similarity = result["score"]
+            # Set similarity score
+            memory.similarity = result.get("similarity", 0.0)
+            
             memories.append(memory)
             
+        logger.info(f"Found {len(memories)} memories for query: {query[:50]}...")
         return memories
-    
-    def embed_text(self, text: str) -> np.ndarray:
+
+    def index_memory(self, memory: Memory) -> bool:
         """
-        Generate an embedding for the given text.
-        
+        Index a memory for future semantic search.
+
         Args:
-            text: Text to embed
-            
+            memory: Memory object to index
+
         Returns:
-            Embedding vector
+            True if indexing was successful, False otherwise
         """
-        return self.embedding_model.encode(text, normalize_embeddings=True)
+        # Generate embedding if not already present
+        if not hasattr(memory, "embedding") or memory.embedding is None:
+            try:
+                memory.embedding = self.embedding_model.embed_text(memory.text)
+            except Exception as e:
+                logger.error(f"Error generating embedding for memory {memory.id}: {e}")
+                return False
+        
+        # Store the memory with embedding in the memory store
+        try:
+            self.memory_store.add_memory(memory)
+            logger.info(f"Indexed memory {memory.id} for user {memory.user_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Error indexing memory {memory.id}: {e}")
+            return False

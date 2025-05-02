@@ -1,5 +1,6 @@
 -- Initialize pgvector extension
 CREATE EXTENSION IF NOT EXISTS "vector";
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Create embeddings table to store vector embeddings
 CREATE TABLE IF NOT EXISTS embeddings (
@@ -10,11 +11,11 @@ CREATE TABLE IF NOT EXISTS embeddings (
 
 -- Create memories table to store text and metadata
 CREATE TABLE IF NOT EXISTS memories (
-    id SERIAL PRIMARY KEY,
+    id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
     text TEXT NOT NULL,
-    metadata JSONB NOT NULL,
-    embedding_id INTEGER NOT NULL REFERENCES embeddings(id) ON DELETE CASCADE,
+    metadata JSONB NOT NULL DEFAULT '{}',
+    embedding_id INTEGER REFERENCES embeddings(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -23,6 +24,7 @@ CREATE INDEX IF NOT EXISTS idx_memories_user_id ON memories(user_id);
 CREATE INDEX IF NOT EXISTS idx_memories_embedding_id ON memories(embedding_id);
 
 -- Create a function to search by vector similarity
+-- The function returns TEXT for id to match the memories table definition
 CREATE OR REPLACE FUNCTION search_memories(
     query_vector vector(384),
     user_id_filter TEXT,
@@ -30,7 +32,7 @@ CREATE OR REPLACE FUNCTION search_memories(
     similarity_threshold FLOAT DEFAULT 0.7
 )
 RETURNS TABLE (
-    id INTEGER,
+    id TEXT,
     user_id TEXT,
     text TEXT,
     metadata JSONB,
