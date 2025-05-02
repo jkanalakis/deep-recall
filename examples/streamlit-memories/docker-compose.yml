@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: deep-recall-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: recall_memories_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init_embeddings_tables.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ../../
+      dockerfile: examples/streamlit-memories/Dockerfile
+    container_name: recall-memories-api
+    restart: always
+    ports:
+      - "8404:8404"
+    environment:
+      - API_HOST=0.0.0.0
+      - API_PORT=8404
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=recall_memories_db
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - LOG_LEVEL=INFO
+    depends_on:
+      - db
+
+  streamlit:
+    build:
+      context: ../../
+      dockerfile: examples/streamlit-memories/Dockerfile
+    container_name: recall-memories-streamlit
+    restart: always
+    ports:
+      - "8505:8501"
+    environment:
+      - API_URL=http://api:8404
+    command: streamlit run /app/streamlit_app.py
+    depends_on:
+      - api
+
+volumes:
+  postgres_data: 

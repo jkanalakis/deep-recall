@@ -1,0 +1,9 @@
+version: '3.8'
+
+services:
+  api:
+    volumes:
+      - .:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8404 --reload
+    environment:
+      - LOG_LEVEL=DEBUG 
