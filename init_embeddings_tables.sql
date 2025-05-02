@@ -47,14 +47,14 @@ AS $$
         m.text,
         m.metadata,
         m.created_at,
-        1 - (e.vector <-> query_vector) AS similarity
+        (e.vector <=> query_vector) AS similarity
     FROM
         memories m
     JOIN
         embeddings e ON m.embedding_id = e.id
     WHERE
         m.user_id = user_id_filter
-        AND 1 - (e.vector <-> query_vector) >= similarity_threshold
+        AND (e.vector <=> query_vector) >= similarity_threshold
     ORDER BY
         similarity DESC
     LIMIT
