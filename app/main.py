@@ -167,11 +167,10 @@ async def chat(message: ChatMessage):
             )
 
         # Construct a sample response
-        sample_response = "I've found some memories related to your message."
         if relevant_memories:
-            sample_response += f" I found {len(relevant_memories)} relevant memories."
+            sample_response = f"I've found some memories related to your message. I found {len(relevant_memories)} relevant memories."
         else:
-            sample_response += " I don't have any previous memories related to this topic."
+            sample_response = "I don't have any previous memories related to this topic."
 
         return ChatResponse(
             response=sample_response,
