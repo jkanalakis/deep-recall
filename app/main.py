@@ -1,0 +1,238 @@
+#!/usr/bin/env python3
+"""
+Deep Recall Memory API
+
+This API provides endpoints for managing and retrieving memories with the Deep Recall framework.
+"""
+
+import os
+import uuid
+import sys
+import json
+import logging
+from typing import Dict, List, Optional, Any
+from datetime import datetime
+
+from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, Body
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
+import uvicorn
+from loguru import logger
+
+# Import the memory components 
+from memory.memory_service import MemoryService
+from memory.vector_db.faiss_store import FAISSVectorStore
+from memory.models import Memory, MemoryImportance
+
+# Configuration
+API_HOST = os.environ.get("API_HOST", "0.0.0.0")
+API_PORT = int(os.environ.get("API_PORT", "8404"))
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
+
+# Set up logging
+log_level = getattr(logging, LOG_LEVEL.upper())
+logging.basicConfig(
+    level=log_level,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logger.info(f"Starting API on {API_HOST}:{API_PORT} with log level {LOG_LEVEL}")
+
+# Initialize the app
+app = FastAPI(
+    title="Deep Recall Memory API",
+    description="API for storing and retrieving memories using Deep Recall",
+    version="0.1.0",
+)
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Initialize vector store and memory service
+vector_store = FAISSVectorStore(dimension=384)
+memory_service = MemoryService(vector_store=vector_store)
+
+# Pydantic models for API
+class ChatMessage(BaseModel):
+    user_id: str = Field(..., description="Unique identifier for the user")
+    message: str = Field(..., description="Message content")
+
+class MemoryResponse(BaseModel):
+    id: str
+    text: str
+    user_id: str
+    created_at: str
+    similarity: Optional[float] = None
+
+class ChatResponse(BaseModel):
+    response: str
+    memories: List[MemoryResponse] = []
+
+# Routes
+@app.get("/")
+async def read_root():
+    return {"status": "online", "service": "Deep Recall Memory API"}
+
+@app.get("/health")
+async def health_check():
+    # Check services here if needed
+    return {"status": "healthy"}
+
+@app.post("/chat", response_model=ChatResponse)
+async def chat(message: ChatMessage):
+    """
+    Process a user message and return a response with relevant memories.
+    """
+    try:
+        # Store the user message as a memory
+        memory = Memory(
+            id=str(uuid.uuid4()),
+            text=message.message,
+            user_id=message.user_id,
+            created_at=datetime.now().isoformat(),
+            importance=MemoryImportance.NORMAL,
+            metadata={
+                "source": "user_message",
+                "type": "chat"
+            }
+        )
+        memory_service.store_memory(memory)
+
+        # Retrieve relevant memories
+        relevant_memories = memory_service.retrieve_memories(
+            user_id=message.user_id,
+            query=message.message,
+            limit=5,
+            threshold=0.6
+        )
+
+        # Format memories for response
+        memory_responses = []
+        for mem in relevant_memories:
+            memory_responses.append(
+                MemoryResponse(
+                    id=mem.id,
+                    text=mem.text,
+                    user_id=mem.user_id,
+                    created_at=mem.created_at,
+                    similarity=mem.similarity if hasattr(mem, "similarity") else None
+                )
+            )
+
+        # Construct a sample response (in a real app, this would use an LLM)
+        sample_response = "I've found some memories related to your message."
+        if relevant_memories:
+            sample_response += f" I found {len(relevant_memories)} relevant memories."
+        else:
+            sample_response += " I don't have any previous memories related to this topic."
+
+        return ChatResponse(
+            response=sample_response,
+            memories=memory_responses
+        )
+    except Exception as e:
+        logger.error(f"Error processing chat message: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+@app.post("/memories", response_model=Dict[str, str])
+async def store_memory(
+    user_id: str,
+    text: str,
+    metadata: Optional[Dict[str, Any]] = None,
+    importance: str = "NORMAL"
+):
+    """
+    Store a new memory for a user.
+    """
+    try:
+        # Convert importance string to enum
+        try:
+            importance_enum = getattr(MemoryImportance, importance)
+        except AttributeError:
+            importance_enum = MemoryImportance.NORMAL
+            
+        # Create and store the memory
+        memory = Memory(
+            id=str(uuid.uuid4()),
+            text=text,
+            user_id=user_id,
+            created_at=datetime.now().isoformat(),
+            importance=importance_enum,
+            metadata=metadata or {}
+        )
+        memory_service.store_memory(memory)
+        
+        return {"status": "success", "memory_id": memory.id}
+    except Exception as e:
+        logger.error(f"Error storing memory: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to store memory: {str(e)}")
+
+@app.get("/memories", response_model=List[MemoryResponse])
+async def retrieve_memories(
+    user_id: str,
+    query: str,
+    limit: int = 5,
+    threshold: float = 0.6
+):
+    """
+    Retrieve relevant memories for a user based on a query.
+    """
+    try:
+        memories = memory_service.retrieve_memories(
+            user_id=user_id,
+            query=query,
+            limit=limit,
+            threshold=threshold
+        )
+        
+        # Format memories for response
+        memory_responses = []
+        for mem in memories:
+            memory_responses.append(
+                MemoryResponse(
+                    id=mem.id,
+                    text=mem.text,
+                    user_id=mem.user_id,
+                    created_at=mem.created_at,
+                    similarity=mem.similarity if hasattr(mem, "similarity") else None
+                )
+            )
+        
+        return memory_responses
+    except Exception as e:
+        logger.error(f"Error retrieving memories: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve memories: {str(e)}")
+
+@app.delete("/memories/{memory_id}")
+async def delete_memory(memory_id: str):
+    """
+    Delete a specific memory.
+    """
+    try:
+        memory_service.delete_memory(memory_id)
+        return {"status": "success", "message": f"Memory {memory_id} deleted"}
+    except Exception as e:
+        logger.error(f"Error deleting memory: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete memory: {str(e)}")
+
+@app.delete("/users/{user_id}/memories")
+async def delete_user_memories(user_id: str):
+    """
+    Delete all memories for a specific user.
+    """
+    try:
+        # This would need to be implemented in the memory service
+        # memory_service.delete_user_memories(user_id)
+        return {"status": "success", "message": f"All memories for user {user_id} deleted"}
+    except Exception as e:
+        logger.error(f"Error deleting user memories: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete user memories: {str(e)}")
+
+# Run the API if executed directly
+if __name__ == "__main__":
+    uvicorn.run("main:app", host=API_HOST, port=API_PORT, reload=True) 

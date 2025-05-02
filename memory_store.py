@@ -60,16 +60,24 @@ class MemoryStore:
                 self.metadata = {}
                 self.next_id = 0
 
-    def add_memory(self, memory):
+    def add_memory(self, memory, text=None):
         """
         Add a memory to the store.
 
         Args:
             memory: Memory object to store
+            text: Optional text to use if memory.text is not set
 
         Returns:
             ID of the stored memory
         """
+        # Handle case where memory might not have text attribute or text is empty
+        if not hasattr(memory, 'text') or memory.text is None or memory.text == "":
+            if text:
+                memory.text = text
+            else:
+                memory.text = ""  # Ensure text is at least empty string, not None
+                
         # Store text and metadata
         numeric_id = hash(memory.id) % (2**31)
         self.text_data[numeric_id] = memory.text
@@ -210,4 +218,4 @@ class MemoryStore:
             ),
             "embedding_dimension": self.embedding_dim,
             "last_backup": self.last_backup_time,
-        }
+        } 

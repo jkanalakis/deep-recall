@@ -377,3 +377,90 @@ jobs:
       - name: Run security scan
         run: python scripts/security_scan.py
 ```
+
+# PostgreSQL Vector Database Setup
+
+This directory contains scripts and configuration for setting up a PostgreSQL database with `pgvector` extension to store and query vector embeddings for the Deep Recall framework.
+
+## Files
+
+- `init_embeddings_tables.sql` - SQL script to create the necessary tables and functions
+- `init_db.sh` - Bash script to initialize the database during Docker container startup
+- `docker-compose.db.yml` - Docker Compose file for setting up PostgreSQL with pgvector
+- `test_db.py` - Python script to test the database connection and vector operations
+
+## Quick Start
+
+1. Start the PostgreSQL database with pgvector:
+
+```bash
+docker-compose -f docker-compose.db.yml up -d
+```
+
+2. Verify the database is running:
+
+```bash
+docker ps
+```
+
+3. Test the vector database functionality:
+
+```bash
+pip install -r requirements.txt  # Install required packages
+python test_db.py
+```
+
+## Database Schema
+
+The database setup includes the following main tables:
+
+1. `embeddings` - For storing vector embeddings:
+   - `id` - Primary key
+   - `vector` - The vector representation (384 dimensions)
+   - `created_at` - Timestamp
+
+2. `memories` - For storing text and metadata:
+   - `id` - Primary key
+   - `user_id` - ID of the user who owns the memory
+   - `text` - The text content of the memory
+   - `metadata` - Additional information in JSON format
+   - `embedding_id` - Foreign key to the embeddings table
+   - `created_at` - Timestamp
+
+## Usage in Python Code
+
+Example of storing and querying embeddings:
+
+```python
+# Store a memory with embedding
+embedding = model.encode(text)
+vector_str = "[" + ",".join(str(x) for x in embedding) + "]"
+
+# Insert embedding
+cursor.execute("INSERT INTO embeddings (vector) VALUES (%s::vector) RETURNING id", (vector_str,))
+embedding_id = cursor.fetchone()["id"]
+
+# Store memory
+cursor.execute(
+    "INSERT INTO memories (user_id, text, metadata, embedding_id) VALUES (%s, %s, %s, %s)",
+    (user_id, text, metadata_json, embedding_id)
+)
+
+# Query similar memories
+query_embedding = model.encode(query_text)
+query_vector_str = "[" + ",".join(str(x) for x in query_embedding) + "]"
+cursor.execute(
+    "SELECT * FROM search_memories(%s::vector, %s, 5, 0.7)",
+    (query_vector_str, user_id)
+)
+```
+
+## Environment Variables
+
+The following environment variables can be used to configure the database connection:
+
+- `DB_HOST` - Database host (default: localhost)
+- `DB_PORT` - Database port (default: 5432)
+- `DB_NAME` - Database name (default: deep_recall)
+- `DB_USER` - Database user (default: postgres)
+- `DB_PASSWORD` - Database password (default: postgres)
