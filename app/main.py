@@ -141,7 +141,7 @@ async def chat(message: ChatMessage):
                 user_id=message.user_id,
                 query=message.message,
                 limit=5,
-                threshold=0.6
+                threshold=0.85
             )
             
             # Filter out the memory we just added (in case it matches itself)
@@ -218,7 +218,7 @@ async def retrieve_memories(
     user_id: str,
     query: str,
     limit: int = 5,
-    threshold: float = 0.6
+    threshold: float = 0.85
 ):
     """
     Retrieve relevant memories for a user based on a query.
