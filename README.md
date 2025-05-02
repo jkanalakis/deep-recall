@@ -27,6 +27,20 @@ docker-compose up
 python -m memory.app
 ```
 
+## Project Structure
+
+- `api/` - API server implementation
+- `app/` - Web application
+- `database/` - Database related files
+  - `init_embeddings_tables.sql` - SQL script to create the necessary tables and functions
+  - `init_db.sql` - Database initialization script
+  - `schema.sql` - Database schema definition
+  - `db_utils.py` - Database utilities
+  - `sqlalchemy_db_utils.py` - SQLAlchemy database utilities
+  - `test_db.py` - Python script to test the database connection and vector operations
+  - `database_setup.md` - Documentation for database setup
+- `memory/` - Memory components
+
 ## Project Organization
 
 Deep Recall follows a clean separation of concerns:
@@ -123,7 +137,7 @@ pip install -r requirements.txt
 ```bash
 # Install PostgreSQL and pgvector (see database_setup.md for details)
 # Initialize the database
-psql -U postgres -f init_db.sql
+psql -U postgres -f database/init_db.sql
 ```
 
 ### 4. Run the example  
@@ -468,8 +482,8 @@ docker ps
 3. Test the vector database functionality:
 
 ```bash
-pip install -r requirements.txt  # Install required packages
-python test_db.py
+# Test the database connection
+python database/test_db.py
 ```
 
 ## Database Schema

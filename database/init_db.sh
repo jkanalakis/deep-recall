@@ -40,9 +40,9 @@ fi
 
 echo -e "${GREEN}Database container is running.${NC}"
 
-# Apply initialization SQL
-echo "Initializing database schema..."
-docker exec -i deep-recall-postgres psql -U postgres -d recall_memories_db < init_embeddings_tables.sql
+# Initialize the pgvector tables and functions
+echo "Initializing pgvector tables and functions..."
+docker exec -i deep-recall-postgres psql -U postgres -d recall_memories_db < database/init_embeddings_tables.sql
 
 echo -e "${GREEN}Database initialization completed successfully!${NC}"
 echo "You can now run the application with: docker-compose up" 

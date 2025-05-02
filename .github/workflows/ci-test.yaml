@@ -67,10 +67,10 @@ jobs:
           pip install -r requirements.txt
           pip install pytest pytest-cov pytest-asyncio
       
-      - name: Run database setup
+      - name: Initialize Database
         run: |
-          PGPASSWORD=deep_recall_password psql -h localhost -U deep_recall -d deep_recall -f init_db.sql
-          PGPASSWORD=deep_recall_password psql -h localhost -U deep_recall -d deep_recall -f schema.sql
+          PGPASSWORD=deep_recall_password psql -h localhost -U deep_recall -d deep_recall -f database/init_db.sql
+          PGPASSWORD=deep_recall_password psql -h localhost -U deep_recall -d deep_recall -f database/schema.sql
       
       - name: Run unit tests
         env:
@@ -137,10 +137,10 @@ jobs:
           pip install -r requirements.txt
           pip install pytest pytest-cov pytest-asyncio
       
-      - name: Run database setup
+      - name: Initialize Database
         run: |
-          PGPASSWORD=deep_recall_password psql -h localhost -U deep_recall -d deep_recall -f init_db.sql
-          PGPASSWORD=deep_recall_password psql -h localhost -U deep_recall -d deep_recall -f schema.sql
+          PGPASSWORD=deep_recall_password psql -h localhost -U deep_recall -d deep_recall -f database/init_db.sql
+          PGPASSWORD=deep_recall_password psql -h localhost -U deep_recall -d deep_recall -f database/schema.sql
       
       - name: Run integration tests
         env:
@@ -226,10 +226,10 @@ jobs:
           pip install -r requirements.txt
           pip install pytest pytest-cov pytest-asyncio httpx
       
-      - name: Run database setup
+      - name: Initialize Database
         run: |
-          PGPASSWORD=deep_recall_password psql -h localhost -U deep_recall -d deep_recall -f init_db.sql
-          PGPASSWORD=deep_recall_password psql -h localhost -U deep_recall -d deep_recall -f schema.sql
+          PGPASSWORD=deep_recall_password psql -h localhost -U deep_recall -d deep_recall -f database/init_db.sql
+          PGPASSWORD=deep_recall_password psql -h localhost -U deep_recall -d deep_recall -f database/schema.sql
       
       - name: Start API server
         env:

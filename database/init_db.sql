@@ -8,7 +8,7 @@ CREATE DATABASE deep_recall;
 \c deep_recall
 
 -- Run the schema.sql script
-\i schema.sql
+\i database/schema.sql
 
 -- Create a test user (password: testpassword)
 INSERT INTO users (

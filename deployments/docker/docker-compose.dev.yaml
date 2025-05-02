@@ -11,8 +11,8 @@ services:
       POSTGRES_DB: deep_recall
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./../../init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
-      - ./../../schema.sql:/docker-entrypoint-initdb.d/schema.sql
+      - ./../../database/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+      - ./../../database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
     ports:
       - "5432:5432"
     healthcheck:
