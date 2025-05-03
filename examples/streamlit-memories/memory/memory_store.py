@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 class MemoryStore:
     def __init__(
         self,
-        embedding_dim: int = 384,
+        embedding_dim: int = 768,
         db_host: str = None,
         db_port: int = None,
         db_name: str = None,
@@ -111,7 +111,7 @@ class MemoryStore:
 
         self.metadata[numeric_id] = metadata
         
-        logger.info(f"Memory {memory.id} stored{'in database' if stored_in_db else ' (in-memory only)'}")
+        logger.info(f"Memory {memory.id} stored{' in database' if stored_in_db else ' (in-memory only)'}")
         return memory.id
     
     def _store_memory_in_db(self, memory) -> bool:
@@ -135,6 +135,18 @@ class MemoryStore:
             if not hasattr(memory, 'embedding') or memory.embedding is None:
                 logger.warning(f"Memory {memory.id} has no embedding, cannot store in database")
                 return False
+            
+            # Validate embedding dimensions match the expected dimension
+            if len(memory.embedding) != self.embedding_dim:
+                logger.error(f"Embedding dimension mismatch: expected {self.embedding_dim}, got {len(memory.embedding)}")
+                
+                # Resize the embedding to match the expected dimension if possible
+                if len(memory.embedding) > self.embedding_dim:
+                    logger.warning(f"Truncating embedding from {len(memory.embedding)} to {self.embedding_dim} dimensions")
+                    memory.embedding = memory.embedding[:self.embedding_dim]
+                else:
+                    logger.error(f"Cannot store embedding: dimension mismatch cannot be fixed")
+                    return False
             
             # Format the embedding vector for pgvector
             vector_str = "[" + ",".join(str(x) for x in memory.embedding) + "]"
@@ -161,7 +173,7 @@ class MemoryStore:
             return True
                 
         except Exception as e:
-            logger.error(f"Error storing memory in database: {e}")
+            logger.error(f"Failed to store embedding")
             return False
 
     def get_memory(self, memory_id: str) -> Optional[Dict[str, Any]]:

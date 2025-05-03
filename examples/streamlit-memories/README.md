@@ -8,7 +8,7 @@ The memory system uses two main database tables:
 
 1. `embeddings` - For storing vector embeddings:
    - `id` - Primary key
-   - `vector` - The vector representation (384 dimensions)
+   - `vector` - The vector representation (configurable dimension, 384 or 768)
    - `created_at` - Timestamp
 
 2. `memories` - For storing text and metadata:
@@ -18,6 +18,10 @@ The memory system uses two main database tables:
    - `metadata` - Additional information in JSON format
    - `embedding_id` - Foreign key to the embeddings table
    - `created_at` - Timestamp
+
+> Note: By default, the system is configured for 384-dimensional vectors using the 'all-MiniLM-L6-v2' model. 
+> If you want to use the 'BAAI/bge-base-en-v1.5' model with 768-dimensional vectors, see the section on 
+> "Updating the Database Schema for Different Embedding Models".
 
 ## Prerequisites
 
@@ -127,6 +131,35 @@ The following environment variables can be used to configure the application:
 - **Database Connection Issues**: Ensure the PostgreSQL container is running with `docker ps`
 - **Vector Search Errors**: Check that the pgvector extension is properly installed
 - **Import Errors**: Verify that all dependencies are installed
+
+## Updating the Database Schema for Different Embedding Models
+
+If you want to use a different embedding model (e.g., "BAAI/bge-base-en-v1.5") that outputs vectors with dimensions other than 384, you'll need to update the database schema:
+
+1. Make sure the containers are running:
+
+```bash
+docker-compose up -d
+```
+
+2. Run the schema update script:
+
+```bash
+./scripts/update_schema.sh
+```
+
+3. Restart the API container:
+
+```bash
+docker-compose restart api
+```
+
+This will:
+- Drop the existing tables and search function
+- Recreate them with support for 768-dimensional vectors (for "BAAI/bge-base-en-v1.5")
+- Update the API to use the new schema
+
+Note that this will delete any existing data in the database.
 
 ## License
 

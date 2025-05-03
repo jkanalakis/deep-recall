@@ -5,7 +5,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Create embeddings table to store vector embeddings
 CREATE TABLE IF NOT EXISTS embeddings (
     id SERIAL PRIMARY KEY,
-    vector vector(384) NOT NULL,
+    vector vector(768) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -25,7 +25,7 @@ CREATE INDEX IF NOT EXISTS idx_memories_embedding_id ON memories(embedding_id);
 
 -- Create a function to search by vector similarity
 CREATE OR REPLACE FUNCTION search_memories(
-    query_vector vector(384),
+    query_vector vector(768),
     user_id_filter TEXT,
     limit_count INTEGER DEFAULT 10,
     similarity_threshold FLOAT DEFAULT 0.7

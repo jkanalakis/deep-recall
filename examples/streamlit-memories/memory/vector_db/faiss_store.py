@@ -26,7 +26,7 @@ class FAISSVectorStore(VectorStore):
 
     def __init__(
         self, 
-        dimension: int = 384,
+        dimension: int = 768,
         metric: str = "cosine",
         index_type: str = "flat",
         db_host: str = None,
@@ -137,10 +137,10 @@ class FAISSVectorStore(VectorStore):
     def search(
         self,
         query_vector: np.ndarray,
-        limit: int = 5,
-        threshold: float = 0.6,
-        filter_metadata: Dict = None
-    ) -> List[Dict]:
+        limit: int = 10,
+        threshold: float = 0.2,
+        filter_metadata: Optional[Dict[str, Any]] = None
+    ) -> List[Dict[str, Any]]:
         """
         Search for similar items.
         

@@ -114,7 +114,7 @@ def store_memory(conn, user_id: str, text: str, metadata: Dict, embedding_id: in
             conn.rollback()
         return None
 
-def search_memories(conn, vector_str: str, user_id: str, limit: int = 10, threshold: float = 0.7) -> List[Dict]:
+def search_memories(conn, vector_str: str, user_id: str, limit: int = 10, threshold: float = 0.2) -> List[Dict]:
     """
     Search for memories by vector similarity.
     

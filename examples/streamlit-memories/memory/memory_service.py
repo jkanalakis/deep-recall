@@ -58,7 +58,7 @@ class MemoryService:
         return memory.id
 
     def retrieve_memories(
-        self, user_id: str, query: str, limit: int = 5, threshold: float = 0.6
+        self, user_id: str, query: str, limit: int = 5, threshold: float = 0.2
     ) -> List[Memory]:
         """
         Retrieve memories for a user based on semantic similarity to a query.

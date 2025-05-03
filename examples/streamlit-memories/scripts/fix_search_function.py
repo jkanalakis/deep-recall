@@ -69,10 +69,10 @@ def fix_search_function():
 
         -- Recreate the function with correct return type (ensuring ID is an INTEGER)
         CREATE OR REPLACE FUNCTION search_memories(
-            query_vector vector(384),
+            query_vector vector(768),
             user_id_filter TEXT,
             limit_count INTEGER DEFAULT 10,
-            similarity_threshold FLOAT DEFAULT 0.7
+            similarity_threshold FLOAT DEFAULT 0.2
         )
         RETURNS TABLE (
             id INTEGER,

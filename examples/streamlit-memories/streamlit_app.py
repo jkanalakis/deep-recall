@@ -37,6 +37,8 @@ if "memory_test_active" not in st.session_state:
     st.session_state.memory_test_active = False
 if "test_messages" not in st.session_state:
     st.session_state.test_messages = []
+if "similarity_threshold" not in st.session_state:
+    st.session_state.similarity_threshold = 0.5  # Default threshold
 
 # Title and description
 st.title("Deep Recall Memories")
@@ -44,6 +46,17 @@ st.title("Deep Recall Memories")
 # Sidebar
 with st.sidebar:
     st.session_state.user_id = st.text_input("User ID", value=st.session_state.user_id)
+    
+    # Add similarity threshold slider
+    st.subheader("Memory Settings")
+    st.session_state.similarity_threshold = st.slider(
+        "Similarity Threshold", 
+        min_value=0.0, 
+        max_value=1.0, 
+        value=st.session_state.similarity_threshold,
+        step=0.05,
+        help="Higher values require more similar matches. Lower values return more results but may be less relevant."
+    )
 
     if st.button("Clear Conversation"):
         st.session_state.messages = []
@@ -145,7 +158,7 @@ if st.session_state.memory_test_active:
                             "user_id": st.session_state.user_id,
                             "query": query,
                             "limit": 5,
-                            "threshold": 0.6
+                            "threshold": st.session_state.similarity_threshold  # Use the slider value
                         }
                     )
                     
@@ -230,7 +243,8 @@ else:
                     f"{API_URL}/chat",
                     json={
                         "user_id": st.session_state.user_id,
-                        "message": prompt
+                        "message": prompt,
+                        "threshold": st.session_state.similarity_threshold  # Include threshold parameter
                     }
                 )
                 

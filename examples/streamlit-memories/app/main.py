@@ -102,6 +102,7 @@ memory_service = MemoryService(
 class ChatMessage(BaseModel):
     user_id: str = Field(..., description="Unique identifier for the user")
     message: str = Field(..., description="Message content")
+    threshold: Optional[float] = Field(default=0.5, description="Similarity threshold for memory retrieval")
 
 class MemoryResponse(BaseModel):
     id: str
@@ -167,7 +168,7 @@ async def chat(message: ChatMessage):
             user_id=message.user_id,
             query=message.message,
             limit=5,
-            threshold=0.95
+            threshold=message.threshold
         )
 
         # Format memories for response

@@ -27,7 +27,7 @@ class SemanticSearch:
     def __init__(
         self, 
         vector_store: VectorStore,
-        model_name: str = "all-MiniLM-L6-v2"
+        model_name: str = "BAAI/bge-base-en-v1.5"
     ):
         """
         Initialize the semantic search.
@@ -100,7 +100,7 @@ class SemanticSearch:
         user_id: str, 
         query: str, 
         limit: int = 5, 
-        threshold: float = 0.6
+        threshold: float = 0.2
     ) -> List[Memory]:
         """
         Search for relevant memories.
